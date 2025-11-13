@@ -446,6 +446,84 @@
         }
     }
 
+    // Play a single bell ring
+    function playSingleBell(audioContext, startTime) {
+        // Create multiple oscillators for a richer bell sound
+        const osc1 = audioContext.createOscillator();
+        const osc2 = audioContext.createOscillator();
+        const osc3 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        const gain2 = audioContext.createGain();
+        const gain3 = audioContext.createGain();
+
+        // Connect oscillators to gains
+        osc1.connect(gain1);
+        osc2.connect(gain2);
+        osc3.connect(gain3);
+        
+        // Connect gains to destination
+        gain1.connect(audioContext.destination);
+        gain2.connect(audioContext.destination);
+        gain3.connect(audioContext.destination);
+
+        // Boxing ring bell frequencies (metallic bell sound)
+        // Main tone: around 800Hz (typical bell frequency)
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(800, startTime);
+        
+        // Harmonic: 2x frequency for metallic quality
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1600, startTime);
+        
+        // Higher harmonic: 3x frequency for brightness
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(2400, startTime);
+
+        // Volume envelope: sharp attack, quick decay with resonance
+        // Main tone
+        gain1.gain.setValueAtTime(0, startTime);
+        gain1.gain.linearRampToValueAtTime(0.4, startTime + 0.01); // Quick attack
+        gain1.gain.exponentialRampToValueAtTime(0.1, startTime + 0.15); // Decay
+        gain1.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5); // Long tail
+        
+        // Harmonic 1
+        gain2.gain.setValueAtTime(0, startTime);
+        gain2.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
+        gain2.gain.exponentialRampToValueAtTime(0.05, startTime + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.005, startTime + 0.5);
+        
+        // Harmonic 2
+        gain3.gain.setValueAtTime(0, startTime);
+        gain3.gain.linearRampToValueAtTime(0.15, startTime + 0.01);
+        gain3.gain.exponentialRampToValueAtTime(0.03, startTime + 0.15);
+        gain3.gain.exponentialRampToValueAtTime(0.003, startTime + 0.5);
+
+        // Start and stop oscillators
+        osc1.start(startTime);
+        osc1.stop(startTime + 0.6);
+        osc2.start(startTime);
+        osc2.stop(startTime + 0.6);
+        osc3.start(startTime);
+        osc3.stop(startTime + 0.6);
+    }
+
+    // Play boxing ring bell sound when game starts (three rings: ding ding ding)
+    function playGameStartSound() {
+        if (!soundEnabled) return;
+
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioContext.currentTime;
+            
+            // Play three bell rings with spacing
+            playSingleBell(audioContext, now);           // First ding
+            playSingleBell(audioContext, now + 0.3);     // Second ding (0.3s after first)
+            playSingleBell(audioContext, now + 0.6);     // Third ding (0.3s after second)
+        } catch (error) {
+            console.warn('[Auto-Join] Could not play game start sound:', error);
+        }
+    }
+
     // Get formatted game details text for notification
     function getGameDetailsText(lobby) {
         if (!lobby || !lobby.gameConfig) {
@@ -1884,13 +1962,17 @@
             stopGameInfoUpdates(); // Stop updating game info when not in lobby
             // Dismiss notification when game starts
             dismissNotification();
-            // If we just entered a game, disable auto-join
-            if (!wasInGame && autoJoinEnabled) {
-                console.log('[Auto-Join] Game started, disabling auto-join');
-                autoJoinEnabled = false;
-                stopMonitoring();
-                saveSettings();
-                updateUI();
+            // If we just entered a game, disable auto-join and play sound
+            if (!wasInGame) {
+                // Play boxing ring bell sound when game starts
+                playGameStartSound();
+                if (autoJoinEnabled) {
+                    console.log('[Auto-Join] Game started, disabling auto-join');
+                    autoJoinEnabled = false;
+                    stopMonitoring();
+                    saveSettings();
+                    updateUI();
+                }
             }
             panel.dataset.wasInGame = 'true';
         } else {
