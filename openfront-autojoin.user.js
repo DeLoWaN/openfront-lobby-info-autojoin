@@ -189,25 +189,6 @@
         return null;
     }
 
-    // Helper function to extract numeric team count from playerTeams (for matching logic)
-    // NOTE: This function is currently unused but kept for potential future use.
-    // IMPORTANT: Duos/Trios/Quads are game modes (players per team), NOT team counts.
-    // They cannot be converted to team counts without knowing the game capacity.
-    // This function should NOT be used to convert Duos/Trios/Quads to team counts.
-    function getNumericTeamCount(playerTeams) {
-        // Only numeric values represent team counts directly
-        if (typeof playerTeams === 'number') {
-            return playerTeams;
-        }
-        // Special modes cannot be converted to team counts without game capacity
-        // Returning null to indicate this cannot be determined
-        if (playerTeams === 'Duos' || playerTeams === 'Trios' || playerTeams === 'Quads') {
-            return null; // Cannot determine team count from players-per-team mode
-        }
-        if (playerTeams === 'Humans Vs Nations') return 2; // Typically 2 teams
-        return null;
-    }
-
     // Check if lobby matches criteria
     function matchesCriteria(lobby, criteriaList) {
         if (!lobby || !lobby.gameConfig || !criteriaList || criteriaList.length === 0) {
