@@ -190,14 +190,20 @@
     }
 
     // Helper function to extract numeric team count from playerTeams (for matching logic)
-    // This is used to determine the number of teams for filtering purposes
+    // NOTE: This function is currently unused but kept for potential future use.
+    // IMPORTANT: Duos/Trios/Quads are game modes (players per team), NOT team counts.
+    // They cannot be converted to team counts without knowing the game capacity.
+    // This function should NOT be used to convert Duos/Trios/Quads to team counts.
     function getNumericTeamCount(playerTeams) {
+        // Only numeric values represent team counts directly
         if (typeof playerTeams === 'number') {
             return playerTeams;
         }
-        if (playerTeams === 'Duos') return 2;
-        if (playerTeams === 'Trios') return 3;
-        if (playerTeams === 'Quads') return 4;
+        // Special modes cannot be converted to team counts without game capacity
+        // Returning null to indicate this cannot be determined
+        if (playerTeams === 'Duos' || playerTeams === 'Trios' || playerTeams === 'Quads') {
+            return null; // Cannot determine team count from players-per-team mode
+        }
         if (playerTeams === 'Humans Vs Nations') return 2; // Typically 2 teams
         return null;
     }
@@ -232,16 +238,18 @@
                     const playerTeams = config.playerTeams;
 
                     // Handle special modes
+                    // Note: Duos/Trios/Quads are game modes (players per team), NOT team counts
+                    // They should only match their exact string values, not numeric team counts
                     if (criteria.teamCount === 'Duos') {
-                        if (playerTeams !== 'Duos' && playerTeams !== 2) {
+                        if (playerTeams !== 'Duos') {
                             continue;
                         }
                     } else if (criteria.teamCount === 'Trios') {
-                        if (playerTeams !== 'Trios' && playerTeams !== 3) {
+                        if (playerTeams !== 'Trios') {
                             continue;
                         }
                     } else if (criteria.teamCount === 'Quads') {
-                        if (playerTeams !== 'Quads' && playerTeams !== 4) {
+                        if (playerTeams !== 'Quads') {
                             continue;
                         }
                     } else if (criteria.teamCount === 'Humans Vs Nations') {
@@ -988,11 +996,16 @@
             } else {
                 // Create a separate criteria for each selected team count
                 for (const teamCount of selectedTeamCounts) {
+                    // Duos/Trios/Quads are game modes with fixed players per team (2/3/4)
+                    // Player per team filters do NOT apply to these modes
+                    const isFixedPlayersPerTeam = teamCount === 'Duos' || teamCount === 'Trios' || teamCount === 'Quads';
+                    
                     const teamCriteria = {
                         gameMode: 'Team',
                         teamCount: teamCount,
-                        minPlayers: minPlayers,
-                        maxPlayers: maxPlayers
+                        // Only include player filters for modes with variable team counts (2/3/4/5/6/7 teams)
+                        minPlayers: isFixedPlayersPerTeam ? null : minPlayers,
+                        maxPlayers: isFixedPlayersPerTeam ? null : maxPlayers
                     };
                     criteriaList.push(teamCriteria);
                 }
@@ -1125,8 +1138,14 @@
                                 <!-- Humans Vs Nations removed from UI (code kept for potential reactivation) -->
                             </div>
                         </div>
+                        <div class="player-filter-warning" id="team-player-filter-warning" style="display: none;">
+                            <div class="warning-icon">⚠️</div>
+                            <div class="warning-text">
+                                <strong>Note:</strong> Player per team filters do <strong>NOT</strong> apply to Duos, Trios, or Quads modes.
+                            </div>
+                        </div>
                         <div class="player-filter-info">
-                            <small>Join games based on players per team (applies only to 2/3/4/5/6/7 teams modes, not Duos/Trios/Quads):</small>
+                            <small>Join games based on players per team:</small>
                         </div>
                         <div class="capacity-range-wrapper">
                             <div class="capacity-range-visual">
@@ -1313,6 +1332,7 @@
         if (selectAllBtn) {
             selectAllBtn.addEventListener('click', () => {
                 selectAllTeamCounts();
+                updatePlayerFilterWarning();
                 criteriaList = buildCriteriaFromUI();
                 saveSettings();
             });
@@ -1320,9 +1340,27 @@
         if (deselectAllBtn) {
             deselectAllBtn.addEventListener('click', () => {
                 deselectAllTeamCounts();
+                updatePlayerFilterWarning();
                 criteriaList = buildCriteriaFromUI();
                 saveSettings();
             });
+        }
+
+        // Function to update player filter warning visibility
+        function updatePlayerFilterWarning() {
+            const warningElement = document.getElementById('team-player-filter-warning');
+            if (!warningElement) return;
+            
+            // Check if any of Duos/Trios/Quads are selected
+            const duosCheckbox = document.getElementById('autojoin-team-duos');
+            const triosCheckbox = document.getElementById('autojoin-team-trios');
+            const quadsCheckbox = document.getElementById('autojoin-team-quads');
+            
+            const hasSpecialMode = (duosCheckbox && duosCheckbox.checked) ||
+                                   (triosCheckbox && triosCheckbox.checked) ||
+                                   (quadsCheckbox && quadsCheckbox.checked);
+            
+            warningElement.style.display = hasSpecialMode ? 'flex' : 'none';
         }
 
         // Listen to all team count checkbox changes
@@ -1335,11 +1373,15 @@
             const checkbox = document.getElementById(id);
             if (checkbox) {
                 checkbox.addEventListener('change', () => {
+                    updatePlayerFilterWarning();
                     criteriaList = buildCriteriaFromUI();
                     saveSettings();
                 });
             }
         });
+        
+        // Initial warning state update
+        updatePlayerFilterWarning();
 
         // Setup slider event listeners
         const sliderPairs = [
@@ -1535,6 +1577,20 @@
             }
             // Initialize Team slider from loaded values
             initializeSlider('autojoin-team-min-slider', 'autojoin-team-max-slider', 'autojoin-team-min', 'autojoin-team-max', 'team-range-fill', 'team-min-value', 'team-max-value');
+            
+            // Update warning visibility after loading settings
+            setTimeout(() => {
+                const warningElement = document.getElementById('team-player-filter-warning');
+                if (warningElement) {
+                    const duosCheckbox = document.getElementById('autojoin-team-duos');
+                    const triosCheckbox = document.getElementById('autojoin-team-trios');
+                    const quadsCheckbox = document.getElementById('autojoin-team-quads');
+                    const hasSpecialMode = (duosCheckbox && duosCheckbox.checked) ||
+                                           (triosCheckbox && triosCheckbox.checked) ||
+                                           (quadsCheckbox && quadsCheckbox.checked);
+                    warningElement.style.display = hasSpecialMode ? 'flex' : 'none';
+                }
+            }, 0);
         }
     }
 
@@ -1628,6 +1684,35 @@
             padding: 10px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 4px;
+        }
+
+        .player-filter-warning {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            border-radius: 4px;
+        }
+
+        .warning-icon {
+            font-size: 1.2em;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+
+        .warning-text {
+            flex: 1;
+            color: rgba(251, 191, 36, 0.95);
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .warning-text strong {
+            color: #fbbf24;
+            font-weight: 600;
         }
 
         .player-filter-info {
