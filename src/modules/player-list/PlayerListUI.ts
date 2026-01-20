@@ -50,7 +50,9 @@ export class PlayerListUI {
   private fetchDebounceMs: number = 1500;
   private lastRenderedShowOnlyClans?: boolean;
   private currentPlayerUsername: string = '';
+  private selectedClanTag: string | null = null;
   private autoRejoinOnClanChange: boolean = false;
+  private lastRenderedSelectedClanTag?: string | null;
 
   // DOM elements
   private container!: HTMLDivElement;
@@ -140,8 +142,10 @@ export class PlayerListUI {
       this.previousPlayers.size === nextPlayers.size &&
       names.every((name) => this.previousPlayers.has(name));
     const sameFilter = this.lastRenderedShowOnlyClans === this.showOnlyClans;
+    const activeClanTag = this.getActiveClanTag();
+    const sameSelected = this.lastRenderedSelectedClanTag === activeClanTag;
 
-    if (samePlayers && sameFilter) {
+    if (samePlayers && sameFilter && sameSelected) {
       return; // No changes
     }
 
@@ -328,8 +332,9 @@ export class PlayerListUI {
         if (tag) {
           this.addRecentTag(tag);
         }
+        const didUpdateSelected = this.setSelectedClanTag(currentClanTag || tag);
         // Re-render to apply highlighting even if not in lobby
-        if (this.clanGroups.length > 0) {
+        if (!didUpdateSelected && this.clanGroups.length > 0) {
           this.renderPlayerList();
         }
       }
@@ -417,6 +422,8 @@ export class PlayerListUI {
    * v0.29.0: Use the separate clan tag input (maxlength="5")
    */
   private applyClanTagToNickname(tag: string): void {
+    this.setSelectedClanTag(tag);
+
     const usernameInputComponent = document.querySelector('username-input');
     if (!usernameInputComponent) {
       return;
@@ -632,22 +639,56 @@ export class PlayerListUI {
   }
 
   /**
-   * Find the clan tag of the current player
+   * Normalize clan tags for consistent comparison
    */
-  private findPlayerClanTag(): string | null {
-    if (!this.currentPlayerUsername) return null;
-    return getPlayerClanTag(this.currentPlayerUsername);
+  private normalizeClanTag(tag: string | null | undefined): string | null {
+    if (!tag) {
+      return null;
+    }
+    const trimmed = tag.trim();
+    return trimmed ? trimmed.toLowerCase() : null;
+  }
+
+  /**
+   * Update selected clan tag and refresh list when it changes
+   */
+  private setSelectedClanTag(tag: string | null | undefined): boolean {
+    const normalized = this.normalizeClanTag(tag);
+    if (normalized === this.selectedClanTag) {
+      return false;
+    }
+    this.selectedClanTag = normalized;
+    this.renderPlayerList();
+    return true;
+  }
+
+  /**
+   * Find the clan tag used for highlighting and ordering
+   */
+  private getActiveClanTag(): string | null {
+    if (this.selectedClanTag) {
+      return this.selectedClanTag;
+    }
+    if (!this.currentPlayerUsername) {
+      return null;
+    }
+    return this.normalizeClanTag(getPlayerClanTag(this.currentPlayerUsername));
   }
 
   /**
    * Sort clan groups with the current player's clan at the top
    */
-  private sortClanGroupsWithPlayerFirst(groups: ClanGroup[]): ClanGroup[] {
-    const playerClanTag = this.findPlayerClanTag();
-    if (!playerClanTag) return groups;
+  private sortClanGroupsWithPlayerFirst(
+    groups: ClanGroup[],
+    activeClanTag?: string | null
+  ): ClanGroup[] {
+    const playerClanTag = activeClanTag ?? this.getActiveClanTag();
+    if (!playerClanTag) {
+      return groups;
+    }
 
     const playerClanIndex = groups.findIndex(
-      (g) => g.tag.toLowerCase() === playerClanTag.toLowerCase()
+      (g) => g.tag.toLowerCase() === playerClanTag
     );
 
     if (playerClanIndex > 0) {
@@ -719,26 +760,32 @@ export class PlayerListUI {
     // If this is the first render or filter changed, do full rebuild
     const isFirstRender = this.previousPlayers.size === 0;
     const filterChanged = this.lastRenderedShowOnlyClans !== this.showOnlyClans;
+    const activeClanTag = this.getActiveClanTag();
+    const selectedChanged = this.lastRenderedSelectedClanTag !== activeClanTag;
 
-    if (isFirstRender || filterChanged) {
-      this.renderPlayerListFull();
-      return;
+    if (isFirstRender || filterChanged || selectedChanged) {
+      this.renderPlayerListFull(activeClanTag);
+    } else {
+      // Otherwise, use differential updates with animations
+      this.renderPlayerListDifferential(diff, activeClanTag);
     }
 
-    // Otherwise, use differential updates with animations
-    this.renderPlayerListDifferential(diff);
+    this.lastRenderedSelectedClanTag = activeClanTag;
   }
 
   /**
    * Full rebuild of player list (no animations)
    * Used on first render or filter change
    */
-  private renderPlayerListFull(): void {
+  private renderPlayerListFull(activeClanTag?: string | null): void {
     this.content.innerHTML = '';
 
     // Sort clans with current player's clan at the top
-    const sortedClanGroups = this.sortClanGroupsWithPlayerFirst(this.clanGroups);
-    const playerClanTag = this.findPlayerClanTag();
+    const resolvedClanTag = activeClanTag ?? this.getActiveClanTag();
+    const sortedClanGroups = this.sortClanGroupsWithPlayerFirst(
+      this.clanGroups,
+      resolvedClanTag
+    );
 
     // Render clan groups
     for (const group of sortedClanGroups) {
@@ -746,7 +793,7 @@ export class PlayerListUI {
       const groupEl = this.createClanGroupEl(group.tag, group.players, stats, false);
 
       // Apply blue highlight to current player's clan
-      if (playerClanTag && group.tag.toLowerCase() === playerClanTag.toLowerCase()) {
+      if (resolvedClanTag && group.tag.toLowerCase() === resolvedClanTag) {
         groupEl.classList.add('current-player-clan');
       }
 
@@ -765,7 +812,10 @@ export class PlayerListUI {
    * Differential update of player list with animations
    * Only updates changed elements
    */
-  private renderPlayerListDifferential(diff: import('./PlayerListTypes').PlayerDiff): void {
+  private renderPlayerListDifferential(
+    diff: import('./PlayerListTypes').PlayerDiff,
+    activeClanTag?: string | null
+  ): void {
     // Remove clans that no longer exist
     for (const clanTag of diff.removedClans) {
       const groupEl = this.content.querySelector(
@@ -806,8 +856,11 @@ export class PlayerListUI {
     }
 
     // Add new clans
-    const sortedClanGroups = this.sortClanGroupsWithPlayerFirst(this.clanGroups);
-    const playerClanTag = this.findPlayerClanTag();
+    const resolvedClanTag = activeClanTag ?? this.getActiveClanTag();
+    const sortedClanGroups = this.sortClanGroupsWithPlayerFirst(
+      this.clanGroups,
+      resolvedClanTag
+    );
 
     for (const clanTag of diff.newClans) {
       const group = sortedClanGroups.find((g) => g.tag === clanTag);
@@ -817,7 +870,7 @@ export class PlayerListUI {
       const groupEl = this.createClanGroupEl(group.tag, group.players, stats, true);
 
       // Apply blue highlight to current player's clan
-      if (playerClanTag && group.tag.toLowerCase() === playerClanTag.toLowerCase()) {
+      if (resolvedClanTag && group.tag.toLowerCase() === resolvedClanTag) {
         groupEl.classList.add('current-player-clan');
       }
 
