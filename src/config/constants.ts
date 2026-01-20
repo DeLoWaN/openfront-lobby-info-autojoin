@@ -19,6 +19,7 @@ export const STORAGE_KEYS = {
   playerListShowOnlyClans: "OF_PLAYER_LIST_SHOW_ONLY_CLANS",
   playerListCollapseStates: "OF_PLAYER_LIST_COLLAPSE_STATES",
   playerListRecentTags: "OF_PLAYER_LIST_RECENT_TAGS",
+  playerListAutoRejoin: "OF_PLAYER_LIST_AUTO_REJOIN",
 } as const;
 
 /**

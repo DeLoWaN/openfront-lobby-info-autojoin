@@ -46,6 +46,8 @@ export class PlayerListUI {
   private lastFetchTime: number = 0;
   private fetchDebounceMs: number = 1500;
   private lastRenderedShowOnlyClans?: boolean;
+  private currentPlayerUsername: string = '';
+  private autoRejoinOnClanChange: boolean = false;
 
   // DOM elements
   private container!: HTMLDivElement;
@@ -53,6 +55,7 @@ export class PlayerListUI {
   private debugInfo!: HTMLDivElement;
   private quickTagSwitch!: HTMLDivElement;
   private checkboxFilter!: HTMLDivElement;
+  private autoRejoinCheckbox!: HTMLDivElement;
   private content!: HTMLDivElement;
   private dragHandler!: DragHandler;
   private resizeObserver!: ResizeObserver;
@@ -209,6 +212,26 @@ export class PlayerListUI {
     this.checkboxFilter.appendChild(label);
     this.container.appendChild(this.checkboxFilter);
 
+    this.autoRejoinCheckbox = document.createElement('div');
+    this.autoRejoinCheckbox.className = 'of-auto-rejoin-checkbox';
+
+    const autoRejoinCheckboxInput = document.createElement('input');
+    autoRejoinCheckboxInput.type = 'checkbox';
+    autoRejoinCheckboxInput.id = 'auto-rejoin-checkbox';
+    autoRejoinCheckboxInput.checked = this.autoRejoinOnClanChange;
+    autoRejoinCheckboxInput.addEventListener('change', (e) => {
+      this.autoRejoinOnClanChange = (e.target as HTMLInputElement).checked;
+      this.saveSettings();
+    });
+
+    const autoRejoinLabel = document.createElement('label');
+    autoRejoinLabel.htmlFor = 'auto-rejoin-checkbox';
+    autoRejoinLabel.textContent = 'Auto rejoin lobby when applying clan tag';
+
+    this.autoRejoinCheckbox.appendChild(autoRejoinCheckboxInput);
+    this.autoRejoinCheckbox.appendChild(autoRejoinLabel);
+    this.container.appendChild(this.autoRejoinCheckbox);
+
     this.content = document.createElement('div');
     this.content.className = 'of-content of-player-list-content';
     this.container.appendChild(this.content);
@@ -283,12 +306,20 @@ export class PlayerListUI {
 
       if (fullUsername !== lastUsername) {
         lastUsername = fullUsername;
+        this.currentPlayerUsername = fullUsername; // Track current player
         const tag = getPlayerClanTag(fullUsername);
         if (tag) {
           this.addRecentTag(tag);
         }
+        // Re-render to apply highlighting even if not in lobby
+        if (this.clanGroups.length > 0) {
+          this.renderPlayerList();
+        }
       }
     };
+
+    // Initialize current username immediately
+    checkUsername();
 
     // Check periodically
     this.usernameCheckInterval = setInterval(checkUsername, 1000);
@@ -341,6 +372,11 @@ export class PlayerListUI {
     if (savedRecentTags && Array.isArray(savedRecentTags)) {
       this.recentTags = savedRecentTags;
     }
+
+    const savedAutoRejoin = GM_getValue<boolean | undefined>(STORAGE_KEYS.playerListAutoRejoin);
+    if (savedAutoRejoin !== undefined) {
+      this.autoRejoinOnClanChange = savedAutoRejoin;
+    }
   }
 
   /**
@@ -348,6 +384,7 @@ export class PlayerListUI {
    */
   private saveSettings(): void {
     GM_setValue(STORAGE_KEYS.playerListShowOnlyClans, this.showOnlyClans);
+    GM_setValue(STORAGE_KEYS.playerListAutoRejoin, this.autoRejoinOnClanChange);
   }
 
   /**
@@ -380,6 +417,11 @@ export class PlayerListUI {
         setter.call(clanInput, upperTag);
         clanInput.dispatchEvent(new Event('input', { bubbles: true }));
         clanInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Auto-rejoin if enabled
+        if (this.autoRejoinOnClanChange) {
+          this.performLobbyRejoin();
+        }
       }
     }
   }
@@ -387,16 +429,19 @@ export class PlayerListUI {
   /**
    * Add a clan tag to recent tags list
    * Keeps only the last 5 unique tags
+   * If tag already exists, keeps it in its current position
    */
   private addRecentTag(tag: string): void {
     const upper = tag.toUpperCase();
-    this.recentTags = this.recentTags.filter((t) => t !== upper);
-    this.recentTags.unshift(upper);
-    if (this.recentTags.length > 5) {
-      this.recentTags = this.recentTags.slice(0, 5);
+    // Only add if not already in the list
+    if (!this.recentTags.includes(upper)) {
+      this.recentTags.unshift(upper);
+      if (this.recentTags.length > 5) {
+        this.recentTags = this.recentTags.slice(0, 5);
+      }
+      GM_setValue(STORAGE_KEYS.playerListRecentTags, this.recentTags);
+      this.renderQuickTagSwitch();
     }
-    GM_setValue(STORAGE_KEYS.playerListRecentTags, this.recentTags);
-    this.renderQuickTagSwitch();
   }
 
   /**
@@ -505,7 +550,7 @@ export class PlayerListUI {
       <span class="of-clan-count">${players.length}</span>
       <div class="of-clan-actions">
         ${statsHtml ? `<div class="of-clan-stats">${statsHtml}</div>` : ''}
-        <button class="of-clan-use-btn" title="Apply [${tag}] to your username">Use</button>
+        <button class="of-clan-use-btn" title="Apply [${tag}] to your username">Use tag</button>
       </div>
     `;
 
@@ -561,15 +606,95 @@ export class PlayerListUI {
   }
 
   /**
+   * Find the clan tag of the current player
+   */
+  private findPlayerClanTag(): string | null {
+    if (!this.currentPlayerUsername) return null;
+    return getPlayerClanTag(this.currentPlayerUsername);
+  }
+
+  /**
+   * Sort clan groups with the current player's clan at the top
+   */
+  private sortClanGroupsWithPlayerFirst(groups: ClanGroup[]): ClanGroup[] {
+    const playerClanTag = this.findPlayerClanTag();
+    if (!playerClanTag) return groups;
+
+    const playerClanIndex = groups.findIndex(
+      (g) => g.tag.toLowerCase() === playerClanTag.toLowerCase()
+    );
+
+    if (playerClanIndex > 0) {
+      const playerClan = groups[playerClanIndex]!;
+      return [
+        playerClan,
+        ...groups.slice(0, playerClanIndex),
+        ...groups.slice(playerClanIndex + 1),
+      ];
+    }
+
+    return groups;
+  }
+
+  /**
+   * Perform lobby rejoin to update username on server
+   * Leaves lobby if currently in it, then rejoins
+   */
+  private async performLobbyRejoin(): Promise<void> {
+    const publicLobby = document.querySelector('public-lobby') as any;
+    const btn = LobbyUtils.getLobbyButton();
+
+    if (!btn || !publicLobby) {
+      console.warn('[PlayerList] Cannot rejoin - lobby elements not found');
+      return;
+    }
+
+    const isInLobby = publicLobby.isLobbyHighlighted === true;
+
+    if (isInLobby) {
+      // Leave lobby first
+      btn.click();
+
+      // Wait for leave to complete (longer than debounce delay)
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      // Verify we left
+      if (!LobbyUtils.verifyState('out')) {
+        console.warn('[PlayerList] Failed to leave lobby');
+        return;
+      }
+    }
+
+    // Wait for username to propagate
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Join lobby
+    const joined = LobbyUtils.tryJoinLobby();
+    if (!joined) {
+      console.warn('[PlayerList] Failed to join lobby');
+    }
+  }
+
+  /**
    * Render the complete player list
    */
   private renderPlayerList(): void {
     this.content.innerHTML = '';
 
+    // Sort clans with current player's clan at the top
+    const sortedClanGroups = this.sortClanGroupsWithPlayerFirst(this.clanGroups);
+    const playerClanTag = this.findPlayerClanTag();
+
     // Render clan groups
-    for (const group of this.clanGroups) {
+    for (const group of sortedClanGroups) {
       const stats = ClanLeaderboardCache.getStats(group.tag);
       const groupEl = this.createClanGroupEl(group.tag, group.players, stats);
+
+      // Apply blue highlight to current player's clan
+      if (playerClanTag && group.tag.toLowerCase() === playerClanTag.toLowerCase()) {
+        groupEl.classList.add('current-player-clan');
+      }
+
       this.content.appendChild(groupEl);
     }
 

@@ -163,11 +163,34 @@ export function getStyles(): string {
       flex: 1;
     }
 
+    .of-auto-rejoin-checkbox {
+      padding: ${SPACING.md} ${SPACING.lg};
+      background: ${COLORS.bgSecondary};
+      border-bottom: 1px solid ${COLORS.border};
+      display: flex;
+      align-items: center;
+      gap: ${SPACING.sm};
+      flex-shrink: 0;
+    }
+    .of-auto-rejoin-checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin: 0;
+    }
+    .of-auto-rejoin-checkbox label {
+      cursor: pointer;
+      color: ${COLORS.textPrimary};
+      font-size: 0.95em;
+      user-select: none;
+      flex: 1;
+    }
+
     .of-clan-group {
       border-bottom: 1px solid rgba(110, 130, 180, 0.08);
     }
     .of-clan-group-header {
-      padding: ${SPACING.md} ${SPACING.lg};
+      padding: ${SPACING.sm} ${SPACING.md};
       background: ${COLORS.bgHover};
       cursor: pointer;
       display: flex;
@@ -178,6 +201,16 @@ export function getStyles(): string {
     }
     .of-clan-group-header:hover {
       background: ${COLORS.bgHover};
+    }
+    .of-clan-group.current-player-clan .of-clan-group-header {
+      background: rgba(59, 130, 246, 0.25) !important;
+      border-left: 4px solid rgba(59, 130, 246, 1) !important;
+      padding-left: calc(${SPACING.sm} - 4px);
+    }
+    .of-clan-group.current-player-clan .of-player-item {
+      background: rgba(59, 130, 246, 0.15) !important;
+      border-left: 4px solid rgba(59, 130, 246, 0.6) !important;
+      padding-left: calc(${SPACING.md} + 20px - 4px) !important;
     }
     .of-clan-arrow {
       font-size: 0.8em;
@@ -192,13 +225,13 @@ export function getStyles(): string {
     .of-clan-tag {
       font-weight: 600;
       color: ${COLORS.textPrimary};
-      font-size: 1em;
+      font-size: 0.92em;
     }
     .of-clan-count {
-      font-size: 0.85em;
+      font-size: 0.8em;
       color: ${COLORS.textSecondary};
       background: ${COLORS.accentMuted};
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: ${RADIUS.xl};
     }
     .of-clan-actions {
@@ -211,7 +244,7 @@ export function getStyles(): string {
     .of-clan-stats {
       display: flex;
       gap: ${SPACING.xs};
-      font-size: 0.85em;
+      font-size: 0.78em;
       color: ${COLORS.textSecondary};
       flex-wrap: wrap;
     }
@@ -242,14 +275,14 @@ export function getStyles(): string {
       max-height: 0;
     }
     .of-clan-group-players .of-player-item {
-      padding-left: calc(${SPACING.lg} + 24px);
+      padding-left: calc(${SPACING.md} + 20px);
       background: transparent;
       cursor: default;
     }
     .of-player-list-content { flex: 1; }
     .of-player-item {
-      padding: 7px ${SPACING.lg}; border-bottom: 1px solid rgba(110,130,180,0.08);
-      font-size: 0.97em; line-height: 1.55; position: relative;
+      padding: 5px ${SPACING.md}; border-bottom: 1px solid rgba(110,130,180,0.08);
+      font-size: 0.88em; line-height: 1.4; position: relative;
       transition: background-color ${TIMING.slow}; cursor: default;
       display: flex; align-items: center; justify-content: space-between;
     }
