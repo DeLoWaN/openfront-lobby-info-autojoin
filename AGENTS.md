@@ -144,6 +144,7 @@ Track and organize players in your current lobby with real-time updates:
 - **Clan Organization**: Groups players by their clan tags, making it easy to identify team compositions at a glance
 - **Clan Statistics**: Shows win/loss ratios and performance metrics for recognized clans from the OpenFront leaderboard
 - **Visual Highlighting**: Clearly identifies you and your clanmates in the player list
+- **Active Clan Pinning**: Keeps your current clan group at the top based on your selected clan tag
 - **Player Count Display**: Shows total number of players in the lobby
 - **Collapsible Groups**: Expand or collapse clan groups to manage screen space
 
@@ -191,9 +192,10 @@ Handles lobby interactions intelligently:
 
 Tailor the experience to your preferences:
 
-- **Draggable Panels**: Move both panels anywhere on screen to suit your layout
-- **Resizable Player List**: Adjust the player list panel size to show more or fewer players
-- **Persistent Positions**: Panel positions and sizes are saved between sessions
+- **Docked Player List Sidebar**: Player list sits as a right-side sidebar that reflows game content
+- **Resizable Player List**: Drag the left-edge handle to set the player list width
+- **Draggable Auto-Join Panel**: Move the auto-join panel anywhere on screen to suit your layout
+- **Persistent Layout**: Auto-join position and player list width are saved between sessions
 - **Filter Options**: 
   - Toggle showing only players with clan tags
   - Choose whether clan tag switching also triggers lobby rejoin
@@ -249,7 +251,7 @@ Tailor the experience to your preferences:
 
 - The player list automatically adds any clan tag you type into the username field to your recent tags
 - Switching clan tags can optionally rejoin the lobby, updating your position in the player list groups
-- The player list highlights your current clan group for easy identification
+- The player list highlights and pins your current clan group based on the active clan tag
 
 ### Auto-Join + Player List
 
@@ -270,7 +272,7 @@ Tailor the experience to your preferences:
 All user preferences are automatically saved:
 
 - Auto-join criteria (game modes, player counts, team configurations)
-- Panel positions on screen
+- Auto-join panel position on screen
 - Player list panel size
 - Sound notification preference
 - Filter toggle states (show only clans, join on clan use)
@@ -290,7 +292,7 @@ The userscript provides clear visual indicators:
 - **Animated notifications**: Full-screen notifications when games are found
 - **Search timer**: Live countdown showing how long you've been searching
 - **Status indicators**: Shows whether auto-join is active or inactive
-- **Player animations**: Smooth transitions when players join/leave the lobby
+- **Player animations**: Smooth transitions for player and clan group joins/leaves (with staggered entry)
 - **Sound notifications**: Audio alerts when games are found (optional)
 
 ---
