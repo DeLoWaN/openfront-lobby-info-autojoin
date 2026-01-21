@@ -31,4 +31,5 @@ export interface AutoJoinSettings {
   soundEnabled: boolean;
   joinMode: JoinMode;
   isTeamThreeTimesMinEnabled: boolean;
+  autoRejoinOnClanChange: boolean;
 }

@@ -257,29 +257,6 @@ export function getStyles(): string {
       flex: 1;
     }
 
-    .of-auto-rejoin-checkbox {
-      padding: ${SPACING.md} ${SPACING.lg};
-      background: ${COLORS.bgSecondary};
-      border-bottom: 1px solid ${COLORS.border};
-      display: flex;
-      align-items: center;
-      gap: ${SPACING.sm};
-      flex-shrink: 0;
-    }
-    .of-auto-rejoin-checkbox input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      margin: 0;
-    }
-    .of-auto-rejoin-checkbox label {
-      cursor: pointer;
-      color: ${COLORS.textPrimary};
-      font-size: 0.95em;
-      user-select: none;
-      flex: 1;
-    }
-
     .of-clan-group {
       border-bottom: 1px solid rgba(110, 130, 180, 0.08);
     }
@@ -428,9 +405,15 @@ export function getStyles(): string {
     .autojoin-body { display: flex; flex-direction: column; }
     .autojoin-content { display: flex; flex-direction: column; gap: ${SPACING.sm}; padding: ${SPACING.sm} ${SPACING.md}; }
     .autojoin-top-row { display: flex; align-items: center; gap: ${SPACING.sm}; flex-wrap: wrap; }
+    .autojoin-clanmate-row { display: flex; flex-direction: column; gap: ${SPACING.xs}; }
+    .autojoin-clanmate-button { width: 100%; background: ${COLORS.bgHover}; border: 1px solid ${COLORS.border}; color: ${COLORS.textPrimary}; padding: ${SPACING.sm} ${SPACING.md}; border-radius: ${RADIUS.md}; font-size: 0.95em; font-weight: 600; cursor: pointer; transition: background ${TIMING.fast}, border-color ${TIMING.fast}; text-align: center; }
+    .autojoin-clanmate-button:hover { background: rgba(100,125,190,0.18); }
+    .autojoin-clanmate-button.armed { background: ${COLORS.accent}; border-color: ${COLORS.accentHover}; color: white; }
+    .autojoin-clanmate-button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .autojoin-clanmate-hint { font-size: 0.82em; color: ${COLORS.textSecondary}; }
     .autojoin-config-grid { display: flex; flex-direction: column; gap: ${SPACING.sm}; }
     .autojoin-config-card { flex: 1 1 auto; min-width: 0; width: 100%; }
-    .autojoin-footer { align-items: center; justify-content: flex-end; padding: ${SPACING.xs} ${SPACING.md}; }
+    .autojoin-footer { align-items: center; justify-content: flex-start; gap: ${SPACING.sm}; flex-wrap: wrap; padding: ${SPACING.xs} ${SPACING.md}; }
     .autojoin-main-button { width: auto; flex: 1 1 160px; padding: ${SPACING.sm} ${SPACING.md}; border: none; border-radius: ${RADIUS.md}; font-size: 1em; font-weight: bold; cursor: pointer; transition: all ${TIMING.slow}; text-align: center; }
     .autojoin-main-button.active { background: ${COLORS.success}; color: white; }
     .autojoin-main-button.inactive { background: rgba(100, 100, 100, 0.7); color: ${COLORS.textSecondary}; }
@@ -466,9 +449,11 @@ export function getStyles(): string {
     .status-indicator { width: 8px; height: 8px; border-radius: 50%; background: ${COLORS.success}; }
     .status-text { font-size: 0.9em; color: ${COLORS.textPrimary}; }
     .search-timer { font-size: 0.9em; color: rgba(147, 197, 253, 0.9); font-weight: 500; margin-left: 8px; }
-    .autojoin-settings { display: flex; align-items: center; }
-    .sound-toggle-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9em; color: ${COLORS.textPrimary}; }
-    .sound-toggle-label input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .autojoin-settings { display: flex; align-items: center; gap: ${SPACING.sm}; flex-wrap: wrap; }
+    .sound-toggle-label,
+    .autojoin-toggle-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9em; color: ${COLORS.textPrimary}; }
+    .sound-toggle-label input[type="checkbox"],
+    .autojoin-toggle-label input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
     .current-game-info { margin: 6px 0; padding: 5px ${SPACING.sm}; background: ${COLORS.accentMuted}; border-radius: ${RADIUS.sm}; font-size: 0.9em; color: rgba(147, 197, 253, 0.9); text-align: center; border: 1px solid rgba(59, 130, 246, 0.25); }
     .current-game-info.not-applicable { background: rgba(100, 100, 100, 0.1); color: ${COLORS.textMuted}; border-color: rgba(100, 100, 100, 0.2); font-style: italic; }
     .game-found-notification {

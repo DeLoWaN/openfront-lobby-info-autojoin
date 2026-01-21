@@ -5,6 +5,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { URLObserver } from '@/utils/URLObserver';
 
+const expectAny = expect as unknown as (value: unknown) => any;
+
 describe('URLObserver', () => {
   beforeEach(() => {
     // Reset the observer state between tests
@@ -14,34 +16,34 @@ describe('URLObserver', () => {
   });
 
   it('should initialize only once', () => {
-    expect(URLObserver.initialized).toBe(false);
+    expectAny(URLObserver.initialized).toBe(false);
 
     URLObserver.init();
-    expect(URLObserver.initialized).toBe(true);
+    expectAny(URLObserver.initialized).toBe(true);
 
     // Second call should not reinitialize
     URLObserver.init();
-    expect(URLObserver.initialized).toBe(true);
+    expectAny(URLObserver.initialized).toBe(true);
   });
 
   it('should add callbacks via subscribe', () => {
     const callback = vi.fn();
 
-    expect(URLObserver.callbacks.length).toBe(0);
+    expectAny(URLObserver.callbacks.length).toBe(0);
 
     URLObserver.subscribe(callback);
 
-    expect(URLObserver.callbacks.length).toBe(1);
-    expect(URLObserver.callbacks[0]).toBe(callback);
+    expectAny(URLObserver.callbacks.length).toBe(1);
+    expectAny(URLObserver.callbacks[0]).toBe(callback);
   });
 
   it('should initialize when subscribing', () => {
-    expect(URLObserver.initialized).toBe(false);
+    expectAny(URLObserver.initialized).toBe(false);
 
     const callback = vi.fn();
     URLObserver.subscribe(callback);
 
-    expect(URLObserver.initialized).toBe(true);
+    expectAny(URLObserver.initialized).toBe(true);
   });
 
   it('should notify all subscribers', () => {
@@ -53,7 +55,7 @@ describe('URLObserver', () => {
 
     URLObserver.notify();
 
-    expect(callback1).toHaveBeenCalledWith(location.href);
-    expect(callback2).toHaveBeenCalledWith(location.href);
+    expectAny(callback1).toHaveBeenCalledWith(location.href);
+    expectAny(callback2).toHaveBeenCalledWith(location.href);
   });
 });

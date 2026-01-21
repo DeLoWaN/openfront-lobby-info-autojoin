@@ -95,6 +95,10 @@ function injectLayoutWrapper(): void {
   const autoJoin = new AutoJoinUI();
   console.log('[OpenFront Bundle] Auto-join initialized ✅');
 
+  playerList.onPlayerListUpdate((payload) => {
+    autoJoin.handleClanmateUpdate(payload);
+  });
+
   // Wire up LobbyDataManager to both modules
   LobbyDataManager.subscribe((lobbies) => {
     playerList.receiveLobbyUpdate(lobbies);

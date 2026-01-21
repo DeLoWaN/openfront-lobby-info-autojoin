@@ -33,6 +33,10 @@ export class AutoJoinUI {
   private lastNotifiedGameID: string | null = null;
   private isTeamThreeTimesMinEnabled: boolean = false;
   private sleeping: boolean = false;
+  private autoRejoinOnClanChange: boolean = false;
+  private clanmateWatcherArmed: boolean = false;
+  private lastClanmateMatch: boolean = false;
+  private lastActiveClanTag: string | null = null;
 
   // Intervals/timers
   private timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -62,6 +66,28 @@ export class AutoJoinUI {
   }
 
   /**
+   * Receive clanmate match updates from PlayerListUI
+   */
+  handleClanmateUpdate(payload: { activeClanTag: string | null; hasClanmateMatch: boolean }): void {
+    this.lastActiveClanTag = payload.activeClanTag;
+    this.lastClanmateMatch = payload.hasClanmateMatch;
+    this.updateClanmateButtonState();
+
+    if (!this.clanmateWatcherArmed) {
+      return;
+    }
+
+    if (!payload.activeClanTag) {
+      this.setClanmateWatcherArmed(false);
+      return;
+    }
+
+    if (payload.hasClanmateMatch) {
+      this.attemptClanmateJoin();
+    }
+  }
+
+  /**
    * Migrate old settings to new storage keys
    */
   private migrateSettings(): void {
@@ -69,6 +95,7 @@ export class AutoJoinUI {
     const newKey = STORAGE_KEYS.autoJoinSettings;
     const oldPosKey = 'autoJoinPanelPosition';
     const newPosKey = STORAGE_KEYS.autoJoinPanelPosition;
+    const legacyAutoRejoinKey = STORAGE_KEYS.playerListAutoRejoin;
 
     const oldSettings = GM_getValue(oldKey);
     const newSettings = GM_getValue(newKey);
@@ -80,6 +107,26 @@ export class AutoJoinUI {
     const newPos = GM_getValue(newPosKey);
     if (oldPos && !newPos) {
       GM_setValue(newPosKey, oldPos);
+    }
+
+    const legacyAutoRejoin = GM_getValue<boolean | undefined>(legacyAutoRejoinKey);
+    if (legacyAutoRejoin !== undefined) {
+      const currentSettings = GM_getValue<AutoJoinSettings | null>(newKey, null);
+      if (!currentSettings) {
+        GM_setValue(newKey, {
+          criteria: [],
+          autoJoinEnabled: true,
+          soundEnabled: true,
+          joinMode: 'autojoin',
+          isTeamThreeTimesMinEnabled: false,
+          autoRejoinOnClanChange: legacyAutoRejoin,
+        });
+      } else if (currentSettings.autoRejoinOnClanChange === undefined) {
+        GM_setValue(newKey, {
+          ...currentSettings,
+          autoRejoinOnClanChange: legacyAutoRejoin,
+        });
+      }
     }
   }
 
@@ -95,6 +142,8 @@ export class AutoJoinUI {
       this.joinMode = saved.joinMode || 'autojoin';
       this.isTeamThreeTimesMinEnabled = saved.isTeamThreeTimesMinEnabled || false;
       this.autoJoinEnabled = saved.autoJoinEnabled !== undefined ? saved.autoJoinEnabled : true;
+      this.autoRejoinOnClanChange =
+        saved.autoRejoinOnClanChange !== undefined ? saved.autoRejoinOnClanChange : false;
     }
   }
 
@@ -108,6 +157,7 @@ export class AutoJoinUI {
       soundEnabled: this.soundEnabled,
       joinMode: this.joinMode,
       isTeamThreeTimesMinEnabled: this.isTeamThreeTimesMinEnabled,
+      autoRejoinOnClanChange: this.autoRejoinOnClanChange,
     });
   }
 
@@ -416,6 +466,43 @@ export class AutoJoinUI {
     }
   }
 
+  private setClanmateWatcherArmed(armed: boolean): void {
+    this.clanmateWatcherArmed = armed;
+    this.updateClanmateButtonState();
+  }
+
+  private updateClanmateButtonState(): void {
+    const button = document.getElementById('autojoin-clanmate-button') as HTMLButtonElement | null;
+    const hint = document.getElementById('autojoin-clanmate-hint');
+    if (!button) return;
+
+    const baseHint = 'One-shot. Uses clan tag input. Independent of Auto-Join status.';
+    const hasClanTag = !!this.lastActiveClanTag;
+
+    button.disabled = !hasClanTag;
+    if (this.clanmateWatcherArmed) {
+      button.textContent = 'Waiting for clanmate...';
+      button.classList.add('armed');
+    } else {
+      button.textContent = 'Join when clanmate appears';
+      button.classList.remove('armed');
+    }
+
+    if (hint) {
+      hint.textContent = hasClanTag ? baseHint : `${baseHint} Set your clan tag to enable.`;
+    }
+  }
+
+  private attemptClanmateJoin(): void {
+    if (!this.clanmateWatcherArmed) return;
+    this.setClanmateWatcherArmed(false);
+
+    const joined = LobbyUtils.tryJoinLobby();
+    if (!joined) {
+      console.warn('[AutoJoin] Clanmate auto-join attempt failed');
+    }
+  }
+
   /**
    * Get number value from input
    */
@@ -616,6 +703,10 @@ export class AutoJoinUI {
     // Load sound checkbox
     const soundCheckbox = document.getElementById('autojoin-sound-toggle') as HTMLInputElement;
     if (soundCheckbox) soundCheckbox.checked = this.soundEnabled;
+
+    // Load auto-rejoin checkbox
+    const autoRejoinCheckbox = document.getElementById('autojoin-auto-rejoin') as HTMLInputElement;
+    if (autoRejoinCheckbox) autoRejoinCheckbox.checked = this.autoRejoinOnClanChange;
   }
 
   /**
@@ -730,6 +821,24 @@ export class AutoJoinUI {
     // Status toggle (enable/disable)
     document.getElementById('autojoin-status')?.addEventListener('click', () => {
       this.setAutoJoinEnabled(!this.autoJoinEnabled, { resetTimer: true });
+    });
+
+    // Clanmate one-shot button
+    document.getElementById('autojoin-clanmate-button')?.addEventListener('click', () => {
+      if (this.clanmateWatcherArmed) {
+        this.setClanmateWatcherArmed(false);
+        return;
+      }
+
+      if (!this.lastActiveClanTag) {
+        this.setClanmateWatcherArmed(false);
+        return;
+      }
+
+      this.setClanmateWatcherArmed(true);
+      if (this.lastClanmateMatch) {
+        this.attemptClanmateJoin();
+      }
     });
 
     // Collapse toggle (entire header)
@@ -850,6 +959,15 @@ export class AutoJoinUI {
         this.saveSettings();
       });
     }
+
+    // Auto-rejoin toggle (clan tag apply)
+    const autoRejoinToggle = document.getElementById('autojoin-auto-rejoin') as HTMLInputElement;
+    if (autoRejoinToggle) {
+      autoRejoinToggle.addEventListener('change', () => {
+        this.autoRejoinOnClanChange = autoRejoinToggle.checked;
+        this.saveSettings();
+      });
+    }
   }
 
   /**
@@ -872,7 +990,10 @@ export class AutoJoinUI {
         <div class="of-content autojoin-content">
           <div class="autojoin-top-row">
             <button type="button" id="autojoin-main-button" class="autojoin-main-button active">Auto-Join</button>
-            <div class="autojoin-status" id="autojoin-status"><span class="status-indicator"></span><span class="status-text">Active</span><span class="search-timer" id="search-timer" style="display: none;"></span></div>
+          </div>
+          <div class="autojoin-clanmate-row">
+            <button type="button" id="autojoin-clanmate-button" class="autojoin-clanmate-button">Join when clanmate appears</button>
+            <div class="autojoin-clanmate-hint" id="autojoin-clanmate-hint">One-shot. Uses clan tag input. Independent of Auto-Join status.</div>
           </div>
           <div class="autojoin-config-grid">
             <div class="autojoin-mode-config autojoin-config-card">
@@ -950,7 +1071,11 @@ export class AutoJoinUI {
           </div>
         </div>
         <div class="of-footer autojoin-footer">
-          <div class="autojoin-settings"><label class="sound-toggle-label"><input type="checkbox" id="autojoin-sound-toggle"><span>🔔 Sound</span></label></div>
+          <div class="autojoin-status" id="autojoin-status"><span class="status-indicator"></span><span class="status-text">Active</span><span class="search-timer" id="search-timer" style="display: none;"></span></div>
+          <div class="autojoin-settings">
+            <label class="autojoin-toggle-label"><input type="checkbox" id="autojoin-sound-toggle"><span>🔔 Sound</span></label>
+            <label class="autojoin-toggle-label"><input type="checkbox" id="autojoin-auto-rejoin"><span>Auto rejoin on clan tag apply</span></label>
+          </div>
         </div>
       </div>
     `;
@@ -966,6 +1091,7 @@ export class AutoJoinUI {
     this.setupEventListeners();
     this.setCollapsed(false);
     this.loadUIFromSettings();
+    this.updateClanmateButtonState();
     this.initializeSlider(
       'autojoin-ffa-min-slider',
       'autojoin-ffa-max-slider',

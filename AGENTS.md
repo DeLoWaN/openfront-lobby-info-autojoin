@@ -173,7 +173,7 @@ Rapidly switch between different clan identities:
 
 - **Recent Tags Memory**: Automatically remembers your last 3 used clan tags
 - **One-Click Switching**: Apply any recent clan tag to your username with a single click
-- **Auto-Join Option**: Optionally rejoin the lobby automatically when switching clan tags to ensure proper visibility
+- **Auto-Rejoin Toggle**: Optionally rejoin the lobby automatically when switching clan tags; the toggle lives in the auto-join panel
 - **Tag Management**: Remove clan tags from your recent list if no longer needed
 
 ### 3. Intelligent Auto-Join System
@@ -183,6 +183,7 @@ Automatically find and join games matching your preferences:
 - **Dual Mode Operation**: 
   - **Auto-Join Mode**: Automatically joins lobbies matching your criteria
   - **Notify Mode**: Alerts you when matching games are found, letting you join manually
+- **Clanmate Auto-Join**: One-shot button arms a clanmate watcher and joins when a matching clan tag appears, independent of auto-join mode
 - **Game Mode Filtering**: Search for Free-For-All (FFA) or Team games independently
 - **Player Capacity Filtering**: 
   - For FFA: Filter by total max players (e.g., only join 20+ player games)
@@ -217,7 +218,8 @@ Tailor the experience to your preferences:
 - **Persistent Layout**: Auto-join position and player list width are saved between sessions
 - **Filter Options**: 
   - Toggle showing only players with clan tags
-  - Choose whether clan tag switching also triggers lobby rejoin
+  - Control auto-rejoin on clan tag apply from the auto-join panel
+- **Auto-Join Status Placement**: Status indicators sit next to the sound toggle in the auto-join panel footer so the main mode button keeps its width
 - **Visual Design**: Modern, semi-transparent panels with clean typography and smooth animations
 - **Collapse States Memory**: Remembers which clan groups you had collapsed
 
@@ -276,6 +278,7 @@ Tailor the experience to your preferences:
 
 - Both features use the same lobby data source for efficiency
 - The player list updates in real-time as Auto-Join finds and joins lobbies
+- Clanmate auto-join watches player list updates and can trigger a join even when auto-join is inactive or notify-only
 - Current game info in Auto-Join helps you understand the player composition shown in the player list
 
 ### WebSocket + Polling
@@ -294,11 +297,12 @@ All user preferences are automatically saved:
 - Auto-join panel position on screen
 - Player list panel size
 - Sound notification preference
-- Filter toggle states (show only clans, join on clan use)
+- Filter toggle states (show only clans)
 - Collapsed clan groups
 - Recent clan tags (last 3)
 - Auto-join enabled/disabled state
 - Join mode (auto-join vs notify)
+- Auto rejoin on clan tag apply (stored with auto-join settings and migrated from the legacy player-list key)
 
 ---
 

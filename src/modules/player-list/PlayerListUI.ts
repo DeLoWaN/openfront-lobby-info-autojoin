@@ -51,8 +51,10 @@ export class PlayerListUI {
   private lastRenderedShowOnlyClans?: boolean;
   private currentPlayerUsername: string = '';
   private selectedClanTag: string | null = null;
-  private autoRejoinOnClanChange: boolean = false;
   private lastRenderedSelectedClanTag?: string | null;
+  private playerListUpdateSubscribers: Array<
+    (payload: { activeClanTag: string | null; hasClanmateMatch: boolean }) => void
+  > = [];
 
   // DOM elements
   private container!: HTMLDivElement;
@@ -60,7 +62,6 @@ export class PlayerListUI {
   private debugInfo!: HTMLDivElement;
   private quickTagSwitch!: HTMLDivElement;
   private checkboxFilter!: HTMLDivElement;
-  private autoRejoinCheckbox!: HTMLDivElement;
   private content!: HTMLDivElement;
   private resizeHandler!: ResizeHandler;
   private resizeObserver!: ResizeObserver;
@@ -126,6 +127,15 @@ export class PlayerListUI {
   }
 
   /**
+   * Subscribe to player list updates for clanmate matching
+   */
+  onPlayerListUpdate(
+    callback: (payload: { activeClanTag: string | null; hasClanmateMatch: boolean }) => void
+  ): void {
+    this.playerListUpdateSubscribers.push(callback);
+  }
+
+  /**
    * Update the player list with new names
    * Only re-renders if players have changed
    */
@@ -169,6 +179,36 @@ export class PlayerListUI {
 
     this.previousPlayers = nextPlayers;
     this.lastRenderedShowOnlyClans = this.showOnlyClans;
+    this.notifyPlayerListUpdate();
+  }
+
+  private notifyPlayerListUpdate(): void {
+    if (this.playerListUpdateSubscribers.length === 0) {
+      return;
+    }
+    const activeClanTag = this.getActiveClanTag();
+    const hasClanmateMatch = this.hasClanmateMatch(activeClanTag);
+    const payload = { activeClanTag, hasClanmateMatch };
+    this.playerListUpdateSubscribers.forEach((cb) => cb(payload));
+  }
+
+  private hasClanmateMatch(activeClanTag: string | null): boolean {
+    if (!activeClanTag) {
+      return false;
+    }
+    const normalizedTag = activeClanTag.toLowerCase();
+    const currentName = this.currentPlayerUsername.trim();
+
+    for (const group of this.clanGroups) {
+      if (group.tag.toLowerCase() === normalizedTag) {
+        if (!currentName) {
+          return group.players.length > 0;
+        }
+        return group.players.some((player) => player.trim() !== currentName);
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -236,26 +276,6 @@ export class PlayerListUI {
     this.checkboxFilter.appendChild(checkbox);
     this.checkboxFilter.appendChild(label);
     this.container.appendChild(this.checkboxFilter);
-
-    this.autoRejoinCheckbox = document.createElement('div');
-    this.autoRejoinCheckbox.className = 'of-auto-rejoin-checkbox';
-
-    const autoRejoinCheckboxInput = document.createElement('input');
-    autoRejoinCheckboxInput.type = 'checkbox';
-    autoRejoinCheckboxInput.id = 'auto-rejoin-checkbox';
-    autoRejoinCheckboxInput.checked = this.autoRejoinOnClanChange;
-    autoRejoinCheckboxInput.addEventListener('change', (e) => {
-      this.autoRejoinOnClanChange = (e.target as HTMLInputElement).checked;
-      this.saveSettings();
-    });
-
-    const autoRejoinLabel = document.createElement('label');
-    autoRejoinLabel.htmlFor = 'auto-rejoin-checkbox';
-    autoRejoinLabel.textContent = 'Auto rejoin lobby when applying clan tag';
-
-    this.autoRejoinCheckbox.appendChild(autoRejoinCheckboxInput);
-    this.autoRejoinCheckbox.appendChild(autoRejoinLabel);
-    this.container.appendChild(this.autoRejoinCheckbox);
 
     this.content = document.createElement('div');
     this.content.className = 'of-content of-player-list-content';
@@ -411,11 +431,6 @@ export class PlayerListUI {
     if (savedRecentTags && Array.isArray(savedRecentTags)) {
       this.recentTags = savedRecentTags;
     }
-
-    const savedAutoRejoin = GM_getValue<boolean | undefined>(STORAGE_KEYS.playerListAutoRejoin);
-    if (savedAutoRejoin !== undefined) {
-      this.autoRejoinOnClanChange = savedAutoRejoin;
-    }
   }
 
   /**
@@ -423,7 +438,6 @@ export class PlayerListUI {
    */
   private saveSettings(): void {
     GM_setValue(STORAGE_KEYS.playerListShowOnlyClans, this.showOnlyClans);
-    GM_setValue(STORAGE_KEYS.playerListAutoRejoin, this.autoRejoinOnClanChange);
   }
 
   /**
@@ -432,6 +446,19 @@ export class PlayerListUI {
   private saveCollapseStates(): void {
     const obj = Object.fromEntries(this.collapseStates);
     GM_setValue(STORAGE_KEYS.playerListCollapseStates, obj);
+  }
+
+  private getAutoRejoinOnClanChange(): boolean {
+    const saved = GM_getValue<{ autoRejoinOnClanChange?: boolean } | null>(
+      STORAGE_KEYS.autoJoinSettings,
+      null
+    );
+    if (saved && typeof saved.autoRejoinOnClanChange === 'boolean') {
+      return saved.autoRejoinOnClanChange;
+    }
+
+    const legacy = GM_getValue<boolean | undefined>(STORAGE_KEYS.playerListAutoRejoin);
+    return legacy ?? false;
   }
 
   /**
@@ -460,7 +487,7 @@ export class PlayerListUI {
         clanInput.dispatchEvent(new Event('change', { bubbles: true }));
 
         // Auto-rejoin if enabled
-        if (this.autoRejoinOnClanChange) {
+        if (this.getAutoRejoinOnClanChange()) {
           this.performLobbyRejoin();
         }
       }
@@ -682,6 +709,7 @@ export class PlayerListUI {
     }
     this.selectedClanTag = normalized;
     this.renderPlayerList();
+    this.notifyPlayerListUpdate();
     return true;
   }
 
