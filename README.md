@@ -6,8 +6,9 @@ A modular, TypeScript-based userscript that enhances the OpenFront.io gaming exp
 
 This userscript combines a live lobby player list with an intelligent auto-join system for OpenFront.io.
 
+<img width="501" height="1358" alt="image" src="https://github.com/user-attachments/assets/aaf77b78-20f1-4313-8bc2-78e7e24ac73f" />
+
 ### Requirements
-- OpenFront.io v0.29.0+
 - Tampermonkey or Greasemonkey
 
 ### Features
