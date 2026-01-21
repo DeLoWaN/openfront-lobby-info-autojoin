@@ -62,7 +62,7 @@ function injectLayoutWrapper(): void {
 (function () {
   'use strict';
 
-  console.log('[OpenFront Bundle] Initializing v2.2.1...');
+  console.log('[OpenFront Bundle] Initializing v2.3.0...');
 
   // Inject CSS styles
   GM_addStyle(getStyles());

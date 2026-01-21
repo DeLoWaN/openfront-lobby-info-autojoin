@@ -233,7 +233,7 @@ import { PlayerListUI } from '@/modules/player-list/PlayerListUI';
 
 ### Version History
 
-- **v2.2.1** - Refactored to modular TypeScript architecture
+- **v2.3.0** - Refactored to modular TypeScript architecture
 - **v2.2.0** - Original monolithic bundle.js
 
 ### Contributing
