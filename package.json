@@ -10,7 +10,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "type-check": "tsc --noEmit",
-    "size-check": "ls -lh dist/bundle.js"
+    "size-check": "ls -lh dist/bundle.user.js"
   },
   "keywords": ["userscript", "openfront", "tampermonkey", "greasemonkey"],
   "author": "DeLoVaN + SyntaxMenace + DeepSeek + Claude",

@@ -12,6 +12,9 @@ const userscriptHeader = `// ==UserScript==
 // @namespace    https://openfront.io/
 // @version      2.2.1.v0.29.0
 // @description  Merges "Lobby Player List" and "Auto-Join Lobby" into one efficient script. Shared API calls to prevent 429 errors. Compatible with OpenFront.io v0.29.0+
+// @homepageURL  https://github.com/DeLoWaN/openfront-autojoin-lobby
+// @downloadURL  https://raw.githubusercontent.com/DeLoWaN/openfront-autojoin-lobby/main/dist/bundle.user.js
+// @updateURL    https://raw.githubusercontent.com/DeLoWaN/openfront-autojoin-lobby/main/dist/bundle.user.js
 // @author       DeLoVaN + SyntaxMenace + DeepSeek + Claude
 // @match        https://openfront.io/
 // @grant        GM_getValue
@@ -27,7 +30,7 @@ const isWatch = process.argv.includes('--watch');
 const buildOptions = {
   entryPoints: [resolve(__dirname, 'src/main.ts')],
   bundle: true,
-  outfile: resolve(__dirname, 'dist/bundle.js'),
+  outfile: resolve(__dirname, 'dist/bundle.user.js'),
   format: 'iife',
   platform: 'browser',
   target: 'es2020',

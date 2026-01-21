@@ -2,7 +2,45 @@
 
 A modular, TypeScript-based userscript that enhances the OpenFront.io gaming experience with real-time lobby information and automated game joining.
 
-## 🏗️ Project Structure
+## For Players
+
+This userscript combines a live lobby player list with an intelligent auto-join system for OpenFront.io.
+
+### Requirements
+- OpenFront.io v0.29.0+
+- Tampermonkey or Greasemonkey
+
+### Features
+- Live player list: shows everyone in your lobby, grouped by clan tag, with counts and highlights for you and your clanmates
+- Clan stats: displays win/loss performance for known clans when leaderboard data is available
+- Quick tag switch: swap to your recent clan tags in one click, with optional auto-rejoin
+- Auto-join or notify mode: scans public lobbies and either joins for you or just alerts you when a match appears
+- Smart filters: pick FFA vs Team, min/max players, and team formats (duos/trios/quads or custom team counts)
+- Clanmate watcher: one-shot button that joins when a player with a chosen clan tag appears
+- Alerts and layout: full-screen notifications, optional sound cues, draggable panels, and saved positions
+
+### Install
+1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Greasemonkey](https://www.greasespot.net/)
+2. Open this install link: https://raw.githubusercontent.com/DeLoWaN/openfront-autojoin-lobby/main/dist/bundle.user.js
+3. Confirm installation when prompted
+4. Visit https://openfront.io/ to use the script
+
+### Use
+- Join any lobby and the player list appears automatically
+- Configure auto-join criteria in the Auto-Join panel
+- Switch clan tags from the quick switch section
+- Updates install automatically via Tampermonkey
+
+**Alternative (local install):**
+1. Open `dist/bundle.user.js` in your text editor
+2. Copy the entire contents
+3. Open Tampermonkey dashboard
+4. Click "Create a new script"
+5. Paste the contents and save
+
+## For Developers
+
+### Project Structure
 
 ```
 userscript/
@@ -18,20 +56,15 @@ userscript/
 │       └── auto-join/           # Auto-join functionality
 ├── tests/                       # Unit tests (mirrors src/)
 ├── dist/                        # Build output
-│   └── bundle.js               # Final userscript (install this)
+│   └── bundle.user.js           # Final userscript
 ├── package.json                 # Dependencies & scripts
-├── tsconfig.json               # TypeScript configuration
-└── esbuild.config.js           # Build configuration
+├── tsconfig.json                # TypeScript configuration
+└── esbuild.config.js            # Build configuration
 ```
 
-## 🚀 Quick Start
+### Quick Start
 
-### Prerequisites
-
-- Node.js 18+ (LTS recommended)
-- npm or yarn
-
-### Installation
+Prerequisites: Node.js 18+ (LTS recommended), npm or yarn.
 
 ```bash
 # Install dependencies
@@ -40,20 +73,8 @@ npm install
 # Build the userscript
 npm run build
 
-# The output will be in dist/bundle.js
+# The output will be in dist/bundle.user.js
 ```
-
-### Install in Browser
-
-1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Greasemonkey](https://www.greasespot.net/)
-2. Open `dist/bundle.js` in your text editor
-3. Copy the entire contents
-4. Open Tampermonkey dashboard
-5. Click "Create a new script"
-6. Paste the contents and save
-7. Visit https://openfront.io/ to see it in action
-
-## 🛠️ Development
 
 ### Available Commands
 
@@ -61,11 +82,11 @@ npm run build
 # Development build (with source maps)
 npm run build
 
-# Production build (minified, no source maps)
-npm run build:prod
-
 # Watch mode (auto-rebuild on changes)
 npm run dev
+
+# Production build (minified, no source maps)
+npm run build:prod
 
 # Run tests
 npm run test
@@ -97,7 +118,7 @@ npm run size-check
 - **Max 500 lines per file** - Keep files focused and readable
 - **Tests mirror source** - `tests/utils/Foo.test.ts` for `src/utils/Foo.ts`
 
-## 📦 Build Output
+### Build Output
 
 The build process:
 
@@ -117,7 +138,9 @@ The build process:
 - No source maps
 - ~80KB output
 
-## 🧪 Testing
+The GitHub Actions workflow builds `dist/bundle.user.js` on every push to `main` and commits it so the raw install URL stays current.
+
+### Testing
 
 Tests are written using Vitest with JSDOM environment.
 
@@ -151,9 +174,9 @@ describe('YourFunction', () => {
 });
 ```
 
-## 🏛️ Architecture
+### Architecture
 
-### Layered Design
+#### Layered Design
 
 The codebase follows a layered architecture:
 
@@ -178,7 +201,7 @@ The codebase follows a layered architecture:
 - Modules can import from utils, data, config
 - No circular dependencies (enforced by TypeScript)
 
-### Module Responsibilities
+#### Module Responsibilities
 
 | Module | Responsibility |
 |--------|----------------|
@@ -191,9 +214,9 @@ The codebase follows a layered architecture:
 | `modules/auto-join/` | Auto-join UI and matching logic |
 | `main.ts` | Bootstrap and wire up all modules |
 
-## 🔧 Configuration
+### Configuration
 
-### TypeScript Path Aliases
+#### TypeScript Path Aliases
 
 Configured in `tsconfig.json` and `esbuild.config.js`:
 
@@ -203,16 +226,16 @@ import { DragHandler } from '@/utils/DragHandler';
 import { PlayerListUI } from '@/modules/player-list/PlayerListUI';
 ```
 
-### Environment Variables
+#### Environment Variables
 
 - `NODE_ENV=production` - Enables minification, disables source maps
 
-## 📝 Version History
+### Version History
 
 - **v2.2.1** - Refactored to modular TypeScript architecture
 - **v2.2.0** - Original monolithic bundle.js
 
-## 🤝 Contributing
+### Contributing
 
 1. Follow the existing code structure
 2. Write tests for new functionality
@@ -220,18 +243,18 @@ import { PlayerListUI } from '@/modules/player-list/PlayerListUI';
 4. Keep files under 500 lines
 5. Use meaningful commit messages (see [Global CLAUDE.md](../CLAUDE.md))
 
-## 📄 License
+### License
 
 UNLICENSED - Private project
 
-## 👥 Authors
+### Authors
 
 - DeLoVaN
 - SyntaxMenace
 - DeepSeek
 - Claude
 
-## 🔗 Links
+### Links
 
 - [OpenFront.io](https://openfront.io/)
 - [Tampermonkey](https://www.tampermonkey.net/)

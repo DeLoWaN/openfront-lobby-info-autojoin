@@ -25,7 +25,7 @@ This userscript enhances the OpenFront.io gaming experience by providing real-ti
 
 **Requirements:** OpenFront.io v0.29.0+
 
-The userscript is built from modular TypeScript source files in the root directory and compiled to `dist/bundle.js` for distribution. The main repository contains the game OpenFront.io, also accessible at https://openfront.io.
+The userscript is built from modular TypeScript source files in the root directory and compiled to `dist/bundle.user.js` for distribution. The main repository contains the game OpenFront.io, also accessible at https://openfront.io.
 
 ---
 
@@ -75,7 +75,7 @@ The userscript has been refactored from a monolithic 2,805-line JavaScript file 
 │   │       └── AutoJoinUI.ts
 │   └── main.ts              # Entry point, module initialization
 ├── tests/                   # Test files (Vitest)
-├── dist/                    # Build output (bundle.js)
+├── dist/                    # Build output (bundle.user.js)
 ├── package.json             # Dependencies and scripts
 ├── tsconfig.json            # TypeScript configuration
 ├── esbuild.config.js        # Build configuration

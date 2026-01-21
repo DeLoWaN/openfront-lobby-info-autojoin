@@ -40,7 +40,7 @@ This is a userscript for OpenFront.io lobbies (OpenFront.io v0.29.0+). It augmen
 
 ## Important Constraints
 - Userscript runtime (Tampermonkey/Greasemonkey) must remain compatible.
-- Source of truth is `src/`; bundle output is `dist/bundle.js` via esbuild.
+- Source of truth is `src/`; bundle output is `dist/bundle.user.js` via esbuild.
 - Maintain strict TypeScript type safety and layer boundaries.
 - Preserve existing storage keys to avoid breaking user settings.
 
