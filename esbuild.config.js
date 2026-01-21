@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 const userscriptHeader = `// ==UserScript==
 // @name         OpenFront.io Bundle: Player List + Auto-Join
 // @namespace    https://openfront.io/
-// @version      2.3.0.v0.29.0
+// @version      2.3.0
 // @description  Merges "Lobby Player List" and "Auto-Join Lobby" into one efficient script. Shared API calls to prevent 429 errors. Compatible with OpenFront.io v0.29.0+
 // @homepageURL  https://github.com/DeLoWaN/openfront-autojoin-lobby
 // @downloadURL  https://raw.githubusercontent.com/DeLoWaN/openfront-autojoin-lobby/main/dist/bundle.user.js
