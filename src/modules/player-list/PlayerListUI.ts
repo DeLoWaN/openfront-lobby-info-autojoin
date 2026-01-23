@@ -23,6 +23,7 @@ import {
   findWorkerId,
   fetchGameData,
   diffPlayerSets,
+  stripClanTag,
 } from './PlayerListHelpers';
 
 // Module-level variables for game tracking
@@ -595,7 +596,7 @@ export class PlayerListUI {
     playersEl.className = 'of-clan-group-players';
 
     for (const player of players) {
-      playersEl.appendChild(this.createPlayerEl(player));
+      playersEl.appendChild(this.createPlayerEl(player, false, true));
     }
 
     groupEl.appendChild(headerEl);
@@ -607,7 +608,7 @@ export class PlayerListUI {
   /**
    * Create a player element
    */
-  private createPlayerEl(name: string, isNew: boolean = false): HTMLElement {
+  private createPlayerEl(name: string, isNew: boolean = false, isInClanGroup: boolean = false): HTMLElement {
     const el = document.createElement('div');
     el.className = 'of-player-item';
     el.setAttribute('data-player-name', name);
@@ -618,7 +619,8 @@ export class PlayerListUI {
 
     const nameEl = document.createElement('span');
     nameEl.className = 'of-player-name';
-    nameEl.textContent = name;
+    // Strip clan tag when displaying inside a clan group
+    nameEl.textContent = isInClanGroup ? stripClanTag(name) : name;
 
     el.appendChild(nameEl);
     return el;
@@ -790,7 +792,7 @@ export class PlayerListUI {
     // Render untagged players if filter is off
     if (!this.showOnlyClans) {
       for (const player of this.untaggedPlayers) {
-        this.content.appendChild(this.createPlayerEl(player, false));
+        this.content.appendChild(this.createPlayerEl(player, false, false));
       }
     }
   }
@@ -885,7 +887,7 @@ export class PlayerListUI {
       const isCollapsed = groupEl.classList.contains('collapsed');
 
       for (const playerName of players) {
-        const playerEl = this.createPlayerEl(playerName, true);
+        const playerEl = this.createPlayerEl(playerName, true, true);
 
         // Add stagger class (limit to 5)
         if (staggerIndex > 0 && staggerIndex <= 4) {
@@ -918,7 +920,7 @@ export class PlayerListUI {
     // Add untagged players with stagger
     if (!this.showOnlyClans) {
       for (const playerName of diff.addedUntagged) {
-        const playerEl = this.createPlayerEl(playerName, true);
+        const playerEl = this.createPlayerEl(playerName, true, false);
 
         // Add stagger class (limit to 5)
         if (staggerIndex > 0 && staggerIndex <= 4) {

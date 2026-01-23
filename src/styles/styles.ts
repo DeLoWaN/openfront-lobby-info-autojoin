@@ -388,10 +388,14 @@ export function getStyles(): string {
       border-left: 3px solid ${COLORS.accent} !important;
       padding-left: calc(${SPACING.sm} - 3px);
     }
-    .of-clan-group.current-player-clan .of-player-item {
-      background: rgba(46, 211, 241, 0.12) !important;
-      border-left: 3px solid rgba(46, 211, 241, 0.6) !important;
-      padding-left: calc(${SPACING.md} + 20px - 3px) !important;
+    .of-clan-group.current-player-clan .of-clan-group-players .of-player-item {
+      background: rgba(46, 211, 241, 0.15) !important;
+      border-color: ${COLORS.accent} !important;
+      box-shadow: 0 0 8px rgba(46, 211, 241, 0.2);
+    }
+    .of-clan-group.current-player-clan .of-clan-group-players .of-player-item:hover {
+      background: rgba(46, 211, 241, 0.25) !important;
+      transform: translateY(-1px);
     }
     .of-clan-arrow {
       font-size: 0.8em;
@@ -461,20 +465,37 @@ export function getStyles(): string {
       color: #04131a;
     }
     .of-clan-group-players {
-      overflow: hidden;
-      transition: max-height ${TIMING.normal} ease-in-out;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 10px 12px 10px;
+      overflow: visible;
+      transition: max-height ${TIMING.normal} ease-in-out, opacity ${TIMING.normal} ease-in-out;
       border-top: 1px solid rgba(60, 80, 120, 0.35);
     }
     .of-clan-group.collapsed .of-clan-group-players {
       max-height: 0;
+      padding: 0;
+      opacity: 0;
+      overflow: hidden;
     }
     .of-clan-group-players .of-player-item {
-      padding-left: calc(${SPACING.md} + 20px);
-      background: transparent;
+      display: inline-flex;
+      padding: 4px 10px;
+      border: 1px solid rgba(90, 110, 150, 0.4);
+      border-radius: ${RADIUS.sm};
+      background: rgba(22, 34, 52, 0.9);
       cursor: default;
+      transition: background ${TIMING.fast}, border-color ${TIMING.fast}, transform ${TIMING.fast};
+    }
+    .of-clan-group-players .of-player-item:hover {
+      background: rgba(30, 44, 66, 0.95);
+      border-color: ${COLORS.borderAccent};
+      transform: translateY(-1px);
     }
     .of-player-list-content { flex: 1; padding: ${SPACING.xs} 0; }
-    .of-player-item {
+    /* Base player item styles (for untagged players) */
+    .of-player-list-content > .of-player-item {
       padding: 6px ${SPACING.md};
       border-bottom: 1px solid rgba(60, 80, 120, 0.35);
       font-size: 0.85em;
@@ -486,11 +507,11 @@ export function getStyles(): string {
       align-items: center;
       justify-content: space-between;
     }
-    .of-player-item:hover {
+    .of-player-list-content > .of-player-item:hover {
       background: rgba(24, 34, 52, 0.7);
       border-bottom-color: rgba(80, 110, 160, 0.5);
     }
-    .of-player-name { color: ${COLORS.textPrimary}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400; flex: 1; }
+    .of-player-name { color: ${COLORS.textPrimary}; white-space: nowrap; overflow: visible; font-weight: 400; flex: 1; }
     .of-player-highlighted { background: linear-gradient(90deg, ${COLORS.highlight} 40%, rgba(46, 211, 241, 0.05)); border-left: 3px solid ${COLORS.accent}; }
     .of-player-enter { animation: playerEnter ${TIMING.slow} cubic-bezier(.27,.82,.48,1.06) forwards; }
     .of-player-enter-stagger-1 { animation-delay: 30ms; }

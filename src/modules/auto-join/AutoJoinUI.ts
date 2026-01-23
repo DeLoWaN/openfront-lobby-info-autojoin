@@ -486,7 +486,7 @@ export class AutoJoinUI {
       button.classList.add('armed');
     } else {
       button.textContent = hasClanTag
-        ? `Join the game if any member of [${tagLabel}] is in the lobby`
+        ? `Join any [${tagLabel}] member`
         : 'Set your clan tag to enable';
       button.classList.remove('armed');
     }

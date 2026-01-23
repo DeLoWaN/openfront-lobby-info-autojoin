@@ -22,6 +22,21 @@ export function getPlayerClanTag(name: string | null | undefined): string | null
 }
 
 /**
+ * Strip clan tag prefix from player name
+ * Removes [TAG] prefix and optional space from the beginning of the name
+ *
+ * @param name - Full player name (e.g., "[CLAN] PlayerName" or "[CLAN]PlayerName")
+ * @returns Name without clan tag prefix (e.g., "PlayerName")
+ */
+export function stripClanTag(name: string): string {
+  if (!name) {
+    return name;
+  }
+  // Remove [TAG] or [TAG] (with optional space after)
+  return name.trim().replace(/^\[([a-zA-Z0-9]{2,5})\]\s*/, '');
+}
+
+/**
  * Group players by their clan tags
  * Players without clan tags are returned separately
  *
