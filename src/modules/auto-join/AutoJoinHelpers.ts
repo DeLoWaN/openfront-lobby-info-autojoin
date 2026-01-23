@@ -31,17 +31,18 @@ export function getPlayersPerTeam(
 }
 
 /**
- * Normalize game mode string to 'FFA' or 'Team'
+ * Normalize game mode string to 'FFA', 'Team', or 'HvN'
  *
  * @param mode - Raw game mode string
  * @returns Normalized game mode or null
  */
-export function normalizeGameMode(mode: string | null | undefined): 'FFA' | 'Team' | null {
+export function normalizeGameMode(mode: string | null | undefined): 'FFA' | 'Team' | 'HvN' | null {
   if (!mode) return null;
   const lower = mode.toLowerCase().trim();
 
   if (lower === 'free for all' || lower === 'ffa') return 'FFA';
   if (lower === 'team' || lower === 'teams') return 'Team';
+  if (lower === 'humans vs nations' || lower === 'hvn') return 'HvN';
 
   return null;
 }
@@ -50,9 +51,9 @@ export function normalizeGameMode(mode: string | null | undefined): 'FFA' | 'Tea
  * Get game mode from lobby
  *
  * @param lobby - Lobby object
- * @returns Game mode ('FFA' or 'Team') or null
+ * @returns Game mode ('FFA', 'Team', or 'HvN') or null
  */
-export function getLobbyGameMode(lobby: Lobby): 'FFA' | 'Team' | null {
+export function getLobbyGameMode(lobby: Lobby): 'FFA' | 'Team' | 'HvN' | null {
   return normalizeGameMode(lobby.gameConfig?.gameMode);
 }
 
@@ -122,4 +123,17 @@ export function getGameDetailsText(lobby: Lobby): string {
   }
 
   return 'Unknown';
+}
+
+/**
+ * Check if a lobby is Humans Vs Nations mode
+ *
+ * @param lobby - Lobby object
+ * @returns True if lobby is HvN mode
+ */
+export function isHvNLobby(lobby: Lobby): boolean {
+  return (
+    getLobbyGameMode(lobby) === 'Team' &&
+    lobby.gameConfig?.playerTeams === 'Humans Vs Nations'
+  );
 }

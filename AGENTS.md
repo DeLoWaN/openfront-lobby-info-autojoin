@@ -330,3 +330,7 @@ This userscript is designed specifically for OpenFront.io gameplay and integrate
 - Tampermonkey/Greasemonkey browser extension
 
 The code is a collaborative effort by DeLoVaN, SyntaxMenace, DeepSeek, and Claude.
+
+# Proposals
+
+When you complete a new Openfront proposal, upgrade the version number. Also run "npm run build:prod"

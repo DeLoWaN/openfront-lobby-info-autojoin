@@ -607,6 +607,16 @@ export class AutoJoinUI {
       }
     }
 
+    const hvnCheckbox = document.getElementById('autojoin-hvn') as HTMLInputElement;
+    if (hvnCheckbox?.checked) {
+      criteria.push({
+        gameMode: 'HvN',
+        teamCount: null,
+        minPlayers: null,
+        maxPlayers: null,
+      });
+    }
+
     return criteria;
   }
 
@@ -684,6 +694,13 @@ export class AutoJoinUI {
         checkbox = document.getElementById(`autojoin-team-${teamCount}`) as HTMLInputElement;
       }
       if (checkbox) checkbox.checked = true;
+    }
+
+    // Load HvN checkbox
+    const hvnCheckbox = document.getElementById('autojoin-hvn') as HTMLInputElement;
+    const hasHvN = this.criteriaList.some((c) => c.gameMode === 'HvN');
+    if (hvnCheckbox) {
+      hvnCheckbox.checked = hasHvN;
     }
 
     // Load capacity values
@@ -889,6 +906,16 @@ export class AutoJoinUI {
       });
     }
 
+    // HvN checkbox
+    const hvnCheckbox = document.getElementById('autojoin-hvn') as HTMLInputElement;
+    if (hvnCheckbox) {
+      hvnCheckbox.addEventListener('change', () => {
+        this.criteriaList = this.buildCriteriaFromUI();
+        this.saveSettings();
+        this.syncSearchTimer({ resetStart: true });
+      });
+    }
+
     // 3× checkbox
     const threeTimesCheckbox = document.getElementById('autojoin-team-three-times') as HTMLInputElement;
     if (threeTimesCheckbox) {
@@ -1034,6 +1061,9 @@ export class AutoJoinUI {
                   </div>
                 </div>
               </div>
+            </div>
+            <div class="autojoin-mode-config autojoin-config-card">
+              <label class="mode-checkbox-label"><input type="checkbox" id="autojoin-hvn" name="gameMode" value="HvN"><span>Humans Vs Nations</span></label>
             </div>
             <div class="autojoin-mode-config autojoin-config-card">
               <label class="mode-checkbox-label"><input type="checkbox" id="autojoin-team" name="gameMode" value="Team"><span>Team</span></label>

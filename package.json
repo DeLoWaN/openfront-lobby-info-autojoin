@@ -1,6 +1,6 @@
 {
   "name": "openfront-bundle-userscript",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "OpenFront.io Bundle: Player List + Auto-Join",
   "type": "module",
   "scripts": {

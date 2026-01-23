@@ -58,6 +58,12 @@ export class AutoJoinEngine {
           }
         }
         matches = true;
+      } else if (criteria.gameMode === 'HvN') {
+        // HvN mode: check if lobby is Team with playerTeams = "Humans Vs Nations"
+        if (lobbyMode === 'Team' && lobby.gameConfig?.playerTeams === 'Humans Vs Nations') {
+          matches = true;
+          // No player count filtering for HvN (per requirements)
+        }
       }
 
       // If game mode matches, check capacity constraints
@@ -90,6 +96,7 @@ export class AutoJoinEngine {
             continue; // Too many players per team
           }
         }
+        // HvN: no capacity checks (handled in matching branch above)
 
         return true; // All checks passed
       }

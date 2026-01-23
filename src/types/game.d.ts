@@ -7,7 +7,7 @@
  */
 export interface GameConfig {
   gameMode: 'Free For All' | 'Team' | string;
-  playerTeams?: 'Duos' | 'Trios' | 'Quads' | number;
+  playerTeams?: 'Duos' | 'Trios' | 'Quads' | 'Humans Vs Nations' | number;
   teams?: number;
   teamCount?: number;
   maxClients?: number;

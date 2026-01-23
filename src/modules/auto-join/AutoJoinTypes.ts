@@ -10,13 +10,13 @@ export type JoinMode = 'autojoin' | 'notify';
 /**
  * Team count options for Team game mode
  */
-export type TeamCount = 'Duos' | 'Trios' | 'Quads' | number;
+export type TeamCount = 'Duos' | 'Trios' | 'Quads' | 'Humans Vs Nations' | number;
 
 /**
  * Criteria for matching lobbies
  */
 export interface AutoJoinCriteria {
-  gameMode: 'FFA' | 'Team';
+  gameMode: 'FFA' | 'Team' | 'HvN';
   teamCount?: TeamCount | null;
   minPlayers: number | null;
   maxPlayers: number | null;
