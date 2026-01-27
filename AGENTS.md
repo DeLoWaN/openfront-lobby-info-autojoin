@@ -40,7 +40,7 @@ The userscript has been refactored from a monolithic 2,805-line JavaScript file 
 - **Language**: TypeScript 5.3+ with strict mode enabled
 - **Bundler**: esbuild for fast, efficient compilation
 - **Testing**: Vitest with JSDOM environment
-- **Output**: Production bundle is 58KB (41% smaller than the original 98KB)
+- **Output**: Production bundle size varies by feature set (currently ~106KB)
 
 #### Directory Structure
 
@@ -49,6 +49,7 @@ The userscript has been refactored from a monolithic 2,805-line JavaScript file 
 ├── src/                      # Source code (TypeScript)
 │   ├── config/              # Configuration and constants
 │   │   ├── constants.ts     # CONFIG, STORAGE_KEYS, Z_INDEX
+│   │   ├── clanColors.ts    # OpenFront team palettes + color ordering
 │   │   └── theme.ts         # COLORS, SPACING, design tokens
 │   ├── types/               # TypeScript type definitions
 │   │   ├── game.d.ts        # Lobby, GameConfig interfaces
@@ -60,6 +61,7 @@ The userscript has been refactored from a monolithic 2,805-line JavaScript file 
 │   │   ├── URLObserver.ts   # SPA navigation detection
 │   │   ├── LobbyUtils.ts    # Lobby interaction helpers
 │   │   └── SoundUtils.ts    # Audio notification system
+│   │   └── TeamColorAllocator.ts # OpenFront color allocator + deltaE matching
 │   ├── data/                # Data management layer
 │   │   ├── LobbyDataManager.ts        # WebSocket + HTTP fallback
 │   │   └── ClanLeaderboardCache.ts    # Clan stats caching
@@ -121,12 +123,13 @@ npm run type-check
 - **Subscriber Pattern**: Data layer uses pub/sub for loose coupling between modules
 - **Backwards Compatible**: Maintains existing GM_storage keys for user settings
 - **Type Safety**: Full TypeScript strict mode with comprehensive type definitions
+- **Color Matching**: Team assignment + color allocation mirror OpenFront lobby preview rules
 
 #### Module Overview
 
 **PlayerList Module** ([src/modules/player-list/](src/modules/player-list/)):
 - `PlayerListTypes.ts` - Type definitions for settings and clan groups
-- `PlayerListHelpers.ts` - Pure functions for player grouping and clan tag extraction
+- `PlayerListHelpers.ts` - Pure functions for player grouping, clan tag extraction, team assignment
 - `PlayerListUI.ts` - UI class with 21 methods handling rendering and interactions
 
 **AutoJoin Module** ([src/modules/auto-join/](src/modules/auto-join/)):
@@ -162,7 +165,8 @@ Track and organize players in your current lobby with real-time updates:
 - **Real-Time Player Tracking**: Automatically displays all players currently in your lobby as they join or leave
 - **Clan Organization**: Groups players by their clan tags, making it easy to identify team compositions at a glance
 - **Clan Statistics**: Shows win/loss ratios and performance metrics for recognized clans from the OpenFront leaderboard
-- **Visual Highlighting**: Clearly identifies you and your clanmates in the player list
+- **Team-Based Clan Colors**: Clans share the same color they will receive in OpenFront team games
+- **You Badge**: Your clan group is marked with a "You" badge without overriding team color
 - **Active Clan Pinning**: Keeps your current clan group at the top based on your selected clan tag
 - **Player Count Display**: Shows total number of players in the lobby
 - **Collapsible Groups**: Expand or collapse clan groups to manage screen space
@@ -273,6 +277,7 @@ Tailor the experience to your preferences:
 - The player list automatically adds any clan tag you type into the username field to your recent tags
 - Switching clan tags can optionally rejoin the lobby, updating your position in the player list groups
 - The player list highlights and pins your current clan group based on the active clan tag
+- Team games assign clan colors based on the same OpenFront team preview logic
 
 ### Auto-Join + Player List
 
@@ -310,8 +315,8 @@ All user preferences are automatically saved:
 
 The userscript provides clear visual indicators:
 
-- **Green highlights**: Your current player entry and clan group
-- **Lighter green**: Your clanmates in the player list
+- **Clan color accents**: Headers and player pills use team-based colors
+- **You badge**: Marks your clan without overriding its team color
 - **Animated notifications**: Full-screen notifications when games are found
 - **Search timer**: Live countdown showing how long you've been searching
 - **Status indicators**: Shows whether auto-join is active or inactive
