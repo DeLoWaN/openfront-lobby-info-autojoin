@@ -20,6 +20,10 @@ This userscript combines a live lobby player list with an intelligent auto-join 
 - Clanmate watcher: one-shot button that joins when a player with a chosen clan tag appears
 - Alerts and layout: full-screen notifications, optional sound cues, draggable panels, and saved positions
 
+### Recent updates (v2.6.0)
+- 🌈 Clan colors now match team colors in Team mode
+- 🪄 Auto-Join modes panel is more compact with quick reveal controls
+
 ### Install
 1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Greasemonkey](https://www.greasespot.net/)
 2. Install from greasyfork: [https://greasyfork.org/en/scripts/555551-openfront-io-bundle-player-list-auto-join](https://greasyfork.org/en/scripts/555551-openfront-io-bundle-player-list-auto-join)
