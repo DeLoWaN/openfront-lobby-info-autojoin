@@ -17,7 +17,7 @@ import { URLObserver } from '@/utils/URLObserver';
 import { ClanLeaderboardCache } from '@/data/ClanLeaderboardCache';
 import type { Lobby, PanelSize, GameConfig } from '@/types/game';
 import { ColorAllocator, TeamColorAllocator, rgbToCss, rgbaToCss } from '@/utils/TeamColorAllocator';
-import type { PlayerListSettings, ClanGroup } from './PlayerListTypes';
+import type { PlayerListSettings, ClanGroup, TeamGroup } from './PlayerListTypes';
 import { DEFAULT_SETTINGS } from './PlayerListTypes';
 import {
   getPlayerClanTag,
@@ -28,6 +28,7 @@ import {
   stripClanTag,
   computeClanTeamMap,
   getTeamListForLobby,
+  buildTeamGroups,
   mapNameToFileKey,
 } from './PlayerListHelpers';
 
@@ -54,6 +55,7 @@ export class PlayerListUI {
   private lastFetchTime: number = 0;
   private fetchDebounceMs: number = 1500;
   private lastRenderedShowOnlyClans?: boolean;
+  private lastRenderedTeamMode?: boolean;
   private currentPlayerUsername: string = '';
   private selectedClanTag: string | null = null;
   private lastRenderedSelectedClanTag?: string | null;
@@ -68,6 +70,8 @@ export class PlayerListUI {
   private clanColorAllocator = new ColorAllocator(HUMAN_COLORS, FALLBACK_COLORS);
   private clanColorMap: Map<string, RGB> = new Map();
   private clanTeamMap: Map<string, string> = new Map();
+  private soloPlayerColorAllocator = new ColorAllocator(HUMAN_COLORS, FALLBACK_COLORS);
+  private soloPlayerColorMap: Map<string, RGB> = new Map();
 
   // DOM elements
   private container!: HTMLDivElement;
@@ -183,8 +187,9 @@ export class PlayerListUI {
     const sameFilter = this.lastRenderedShowOnlyClans === this.showOnlyClans;
     const activeClanTag = this.getActiveClanTag();
     const sameSelected = this.lastRenderedSelectedClanTag === activeClanTag;
+    const sameTeamMode = this.lastRenderedTeamMode === this.isTeamMode();
 
-    if (samePlayers && sameFilter && sameSelected) {
+    if (samePlayers && sameFilter && sameSelected && sameTeamMode) {
       return; // No changes
     }
 
@@ -239,6 +244,29 @@ export class PlayerListUI {
     }
 
     return false;
+  }
+
+  private isTeamMode(): boolean {
+    return this.lobbyConfig?.gameMode === 'Team';
+  }
+
+  private getSoloPlayerColor(name: string): RGB {
+    if (this.soloPlayerColorMap.has(name)) {
+      return this.soloPlayerColorMap.get(name)!;
+    }
+    const color = this.soloPlayerColorAllocator.assignColor(name);
+    this.soloPlayerColorMap.set(name, color);
+    return color;
+  }
+
+  private getClanColor(tag: string): RGB {
+    const key = tag.toLowerCase();
+    if (this.clanColorMap.has(key)) {
+      return this.clanColorMap.get(key)!;
+    }
+    const color = this.clanColorAllocator.assignColor(key);
+    this.clanColorMap.set(key, color);
+    return color;
   }
 
   /**
@@ -576,20 +604,34 @@ export class PlayerListUI {
   /**
    * Create a clan group element with header and players
    */
-  private createClanGroupEl(tag: string, players: string[], stats: any, isNew: boolean = false): HTMLElement {
+  private createClanGroupEl(
+    tag: string,
+    players: string[],
+    stats: any,
+    options?: {
+      isNew?: boolean;
+      applyClanColor?: boolean;
+      newPlayers?: Set<string>;
+    }
+  ): HTMLElement {
     const groupEl = document.createElement('div');
     groupEl.className = 'of-clan-group';
     groupEl.setAttribute('data-clan-tag', tag.toLowerCase());
 
-    const color = this.clanColorMap.get(tag.toLowerCase());
-    if (color) {
-      groupEl.style.setProperty('--clan-color', rgbToCss(color));
-      groupEl.style.setProperty('--clan-color-soft', rgbaToCss(color, 0.14));
-      groupEl.style.setProperty('--clan-color-strong', rgbaToCss(color, 0.28));
-      groupEl.style.setProperty('--clan-color-border', rgbaToCss(color, 0.6));
+    const applyClanColor = options?.applyClanColor ?? true;
+    if (applyClanColor) {
+      const color = this.clanColorMap.get(tag.toLowerCase());
+      if (color) {
+        groupEl.style.setProperty('--clan-color', rgbToCss(color));
+        groupEl.style.setProperty('--clan-color-soft', rgbaToCss(color, 0.14));
+        groupEl.style.setProperty('--clan-color-strong', rgbaToCss(color, 0.28));
+        groupEl.style.setProperty('--clan-color-border', rgbaToCss(color, 0.6));
+      }
+    } else {
+      groupEl.classList.add('of-clan-group-neutral');
     }
 
-    if (isNew) {
+    if (options?.isNew) {
       groupEl.classList.add('of-clan-group-enter');
     }
 
@@ -618,7 +660,6 @@ export class PlayerListUI {
 
     headerEl.innerHTML = `
       <span class="of-clan-tag">[${tag}]</span>
-      ${isCurrentClan ? `<span class="of-clan-you-badge">You</span>` : ''}
       <span class="of-clan-count">${players.length}</span>
       <div class="of-clan-actions">
         ${statsHtml ? `<div class="of-clan-stats">${statsHtml}</div>` : ''}
@@ -637,8 +678,10 @@ export class PlayerListUI {
     const playersEl = document.createElement('div');
     playersEl.className = 'of-clan-group-players';
 
+    const newPlayers = options?.newPlayers;
     for (const player of players) {
-      playersEl.appendChild(this.createPlayerEl(player, false, true));
+      const isNewPlayer = newPlayers ? newPlayers.has(player) : false;
+      playersEl.appendChild(this.createPlayerEl(player, isNewPlayer, true, undefined, isCurrentClan));
     }
 
     groupEl.appendChild(headerEl);
@@ -650,13 +693,31 @@ export class PlayerListUI {
   /**
    * Create a player element
    */
-  private createPlayerEl(name: string, isNew: boolean = false, isInClanGroup: boolean = false): HTMLElement {
+  private createPlayerEl(
+    name: string,
+    isNew: boolean = false,
+    isInClanGroup: boolean = false,
+    accentColor?: RGB,
+    isClanmate: boolean = false
+  ): HTMLElement {
     const el = document.createElement('div');
     el.className = 'of-player-item';
     el.setAttribute('data-player-name', name);
 
     if (isNew) {
       el.classList.add('of-player-enter');
+    }
+
+    if (accentColor) {
+      el.classList.add('of-player-item-accent');
+      el.style.setProperty('--player-accent', rgbToCss(accentColor));
+      el.style.setProperty('--player-accent-soft', rgbaToCss(accentColor, 0.16));
+      el.style.setProperty('--player-accent-strong', rgbaToCss(accentColor, 0.32));
+      el.style.setProperty('--player-accent-border', rgbaToCss(accentColor, 0.7));
+    }
+
+    if (isClanmate) {
+      el.classList.add('of-player-item-clanmate');
     }
 
     const nameEl = document.createElement('span');
@@ -793,49 +854,246 @@ export class PlayerListUI {
     const filterChanged = this.lastRenderedShowOnlyClans !== this.showOnlyClans;
     const activeClanTag = this.getActiveClanTag();
     const selectedChanged = this.lastRenderedSelectedClanTag !== activeClanTag;
+    const teamMode = this.isTeamMode();
+    const teamModeChanged = this.lastRenderedTeamMode !== teamMode;
 
-    if (isFirstRender || filterChanged || selectedChanged) {
-      this.renderPlayerListFull(activeClanTag);
+    const forceFull = isFirstRender || filterChanged || selectedChanged || teamModeChanged;
+
+    if (teamMode) {
+      this.renderPlayerListTeamMode(diff, activeClanTag);
+    } else if (forceFull) {
+      this.renderPlayerListFfaFull(activeClanTag);
     } else {
       // Otherwise, use differential updates with animations
-      this.renderPlayerListDifferential(diff, activeClanTag);
+      this.renderPlayerListFfaDifferential(diff, activeClanTag);
     }
 
     this.lastRenderedSelectedClanTag = activeClanTag;
+    this.lastRenderedTeamMode = teamMode;
   }
 
   /**
    * Full rebuild of player list (no animations)
    * Used on first render or filter change
    */
-  private renderPlayerListFull(activeClanTag?: string | null): void {
+  private renderPlayerListFfaFull(activeClanTag?: string | null): void {
     this.content.innerHTML = '';
 
-    // Sort clans with current player's clan at the top
-    const resolvedClanTag = activeClanTag ?? this.getActiveClanTag();
-    const sortedClanGroups = this.sortClanGroupsWithPlayerFirst(
-      this.clanGroups,
-      resolvedClanTag
-    );
+    const names = this.showOnlyClans
+      ? this.currentPlayers.filter((name) => getPlayerClanTag(name))
+      : this.currentPlayers;
 
-    // Render clan groups
-    for (const group of sortedClanGroups) {
-      const stats = ClanLeaderboardCache.getStats(group.tag);
-      const groupEl = this.createClanGroupEl(group.tag, group.players, stats, false);
+    for (const player of names) {
+      const clanTag = getPlayerClanTag(player);
+      const accentColor = clanTag
+        ? this.getClanColor(clanTag)
+        : this.getSoloPlayerColor(player);
+      this.content.appendChild(
+        this.createPlayerEl(player, false, false, accentColor, false)
+      );
+    }
+  }
 
-      // Apply current-player clan cue
-      if (resolvedClanTag && group.tag.toLowerCase() === resolvedClanTag) {
-        groupEl.classList.add('current-player-clan');
-      }
+  private renderPlayerListTeamMode(
+    diff: import('./PlayerListTypes').PlayerDiff,
+    activeClanTag?: string | null
+  ): void {
+    this.content.innerHTML = '';
 
-      this.content.appendChild(groupEl);
+    const gameConfig = this.lobbyConfig;
+    if (!gameConfig || gameConfig.gameMode !== 'Team') {
+      return;
     }
 
-    // Render untagged players if filter is off
-    if (!this.showOnlyClans) {
-      for (const player of this.untaggedPlayers) {
-        this.content.appendChild(this.createPlayerEl(player, false, false));
+    const teams = getTeamListForLobby(gameConfig, this.currentPlayers.length, this.nationCount);
+    if (teams.length === 0) {
+      return;
+    }
+
+    const teamColorMap = this.teamColorAllocator.getTeamColorMap(teams);
+    const teamGroups = buildTeamGroups(
+      this.currentPlayers,
+      this.clanGroups,
+      this.untaggedPlayers,
+      gameConfig,
+      this.nationCount
+    );
+
+    const resolvedClanTag = activeClanTag ?? this.getActiveClanTag();
+    const currentTeam = this.findCurrentTeam(teamGroups, resolvedClanTag);
+    const orderedTeamGroups = this.orderTeamGroups(teamGroups, currentTeam);
+
+    const newClanTags = new Set(diff.newClans.map((tag) => tag.toLowerCase()));
+    const addedUntagged = new Set(diff.addedUntagged);
+
+    for (const teamGroup of orderedTeamGroups) {
+      if (this.showOnlyClans && teamGroup.clanGroups.length === 0) {
+        continue;
       }
+
+      const teamEl = document.createElement('div');
+      teamEl.className = 'of-team-group';
+      teamEl.setAttribute('data-team', teamGroup.team);
+      if (teamGroup.team === currentTeam) {
+        teamEl.classList.add('current-player-team');
+      }
+
+      const teamColor = teamColorMap.get(teamGroup.team);
+      if (teamColor) {
+        teamEl.style.setProperty('--team-color', rgbToCss(teamColor));
+        teamEl.style.setProperty('--team-color-soft', rgbaToCss(teamColor, 0.28));
+      }
+
+      const bandEl = document.createElement('div');
+      bandEl.className = 'of-team-band';
+      teamEl.appendChild(bandEl);
+
+      const headerEl = document.createElement('div');
+      headerEl.className = 'of-team-header';
+      const playerCount =
+        teamGroup.soloPlayers.length +
+        teamGroup.clanGroups.reduce((sum, group) => sum + group.players.length, 0);
+      headerEl.innerHTML = `
+        <span class="of-team-label">${teamGroup.team}</span>
+        <span class="of-team-count">${playerCount}</span>
+      `;
+      teamEl.appendChild(headerEl);
+
+      const sortedClanGroups = this.sortClanGroupsWithPlayerFirst(
+        teamGroup.clanGroups,
+        resolvedClanTag
+      );
+
+      for (const group of sortedClanGroups) {
+        const stats = ClanLeaderboardCache.getStats(group.tag);
+        const newPlayers = diff.addedByClan.get(group.tag.toLowerCase());
+        const groupEl = this.createClanGroupEl(group.tag, group.players, stats, {
+          isNew: newClanTags.has(group.tag.toLowerCase()),
+          applyClanColor: true,
+          newPlayers: newPlayers ? new Set(newPlayers) : undefined,
+        });
+
+        teamEl.appendChild(groupEl);
+
+        if (groupEl.classList.contains('of-clan-group-enter')) {
+          groupEl.addEventListener(
+            'animationend',
+            () => {
+              groupEl.classList.remove('of-clan-group-enter');
+            },
+            { once: true }
+          );
+        }
+      }
+
+      if (!this.showOnlyClans && teamGroup.soloPlayers.length > 0) {
+        const soloEl = document.createElement('div');
+        soloEl.className = 'of-solo-players';
+
+        for (const playerName of teamGroup.soloPlayers) {
+          const isNew = addedUntagged.has(playerName);
+          soloEl.appendChild(
+            this.createPlayerEl(playerName, isNew, false, teamColor)
+          );
+        }
+
+        teamEl.appendChild(soloEl);
+      }
+
+      this.content.appendChild(teamEl);
+    }
+  }
+
+  private findCurrentTeam(
+    teamGroups: TeamGroup[],
+    activeClanTag: string | null
+  ): string | null {
+    if (activeClanTag) {
+      for (const group of teamGroups) {
+        if (group.clanGroups.some((clan) => clan.tag.toLowerCase() === activeClanTag)) {
+          return group.team;
+        }
+      }
+    }
+
+    const currentName = this.currentPlayerUsername.trim();
+    if (!currentName) {
+      return null;
+    }
+
+    for (const group of teamGroups) {
+      if (group.soloPlayers.includes(currentName)) {
+        return group.team;
+      }
+    }
+
+    return null;
+  }
+
+  private orderTeamGroups(teamGroups: TeamGroup[], currentTeam: string | null): TeamGroup[] {
+    if (!currentTeam) {
+      return teamGroups;
+    }
+
+    const index = teamGroups.findIndex((group) => group.team === currentTeam);
+    if (index <= 0) {
+      return teamGroups;
+    }
+
+    const current = teamGroups[index]!;
+    return [
+      current,
+      ...teamGroups.slice(0, index),
+      ...teamGroups.slice(index + 1),
+    ];
+  }
+
+  private renderPlayerListFfaDifferential(
+    diff: import('./PlayerListTypes').PlayerDiff,
+    activeClanTag?: string | null
+  ): void {
+    for (const playerName of diff.removed) {
+      const playerEl = this.content.querySelector(
+        `.of-player-item[data-player-name="${CSS.escape(playerName)}"]`
+      ) as HTMLElement | null;
+      if (playerEl) {
+        this.removePlayerWithAnimation(playerEl);
+      }
+    }
+
+    let staggerIndex = 0;
+    for (const playerName of diff.added) {
+      const clanTag = getPlayerClanTag(playerName);
+      if (this.showOnlyClans && !clanTag) {
+        continue;
+      }
+      const accentColor = clanTag
+        ? this.getClanColor(clanTag)
+        : this.getSoloPlayerColor(playerName);
+      const playerEl = this.createPlayerEl(
+        playerName,
+        true,
+        false,
+        accentColor,
+        false
+      );
+
+      if (staggerIndex > 0 && staggerIndex <= 4) {
+        playerEl.classList.add(`of-player-enter-stagger-${staggerIndex}`);
+      }
+      staggerIndex++;
+
+      this.content.appendChild(playerEl);
+      playerEl.addEventListener(
+        'animationend',
+        () => {
+          playerEl.classList.remove('of-player-enter');
+          for (let i = 1; i <= 4; i++) {
+            playerEl.classList.remove(`of-player-enter-stagger-${i}`);
+          }
+        },
+        { once: true }
+      );
     }
   }
 
@@ -847,6 +1105,10 @@ export class PlayerListUI {
     diff: import('./PlayerListTypes').PlayerDiff,
     activeClanTag?: string | null
   ): void {
+    if (!this.isTeamMode()) {
+      this.renderPlayerListFfaDifferential(diff, activeClanTag);
+      return;
+    }
     // Remove clans that no longer exist
     for (const clanTag of diff.removedClans) {
       const groupEl = this.content.querySelector(
@@ -898,12 +1160,10 @@ export class PlayerListUI {
       if (!group) continue;
 
       const stats = ClanLeaderboardCache.getStats(group.tag);
-      const groupEl = this.createClanGroupEl(group.tag, group.players, stats, true);
-
-      // Apply current-player clan cue
-      if (resolvedClanTag && group.tag.toLowerCase() === resolvedClanTag) {
-        groupEl.classList.add('current-player-clan');
-      }
+      const groupEl = this.createClanGroupEl(group.tag, group.players, stats, {
+        isNew: true,
+        applyClanColor: true,
+      });
 
       // Insert in correct position
       this.insertClanGroupInOrder(groupEl, sortedClanGroups);
@@ -962,7 +1222,8 @@ export class PlayerListUI {
     // Add untagged players with stagger
     if (!this.showOnlyClans) {
       for (const playerName of diff.addedUntagged) {
-        const playerEl = this.createPlayerEl(playerName, true, false);
+        const soloColor = this.getSoloPlayerColor(playerName);
+        const playerEl = this.createPlayerEl(playerName, true, false, soloColor);
 
         // Add stagger class (limit to 5)
         if (staggerIndex > 0 && staggerIndex <= 4) {
@@ -988,12 +1249,14 @@ export class PlayerListUI {
         `[data-clan-tag="${group.tag.toLowerCase()}"]`
       ) as HTMLElement;
       if (groupEl) {
-        const color = this.clanColorMap.get(group.tag.toLowerCase());
-        if (color) {
-          groupEl.style.setProperty('--clan-color', rgbToCss(color));
-          groupEl.style.setProperty('--clan-color-soft', rgbaToCss(color, 0.14));
-          groupEl.style.setProperty('--clan-color-strong', rgbaToCss(color, 0.28));
-          groupEl.style.setProperty('--clan-color-border', rgbaToCss(color, 0.6));
+        if (!this.isTeamMode() && !groupEl.classList.contains('of-clan-group-neutral')) {
+          const color = this.clanColorMap.get(group.tag.toLowerCase());
+          if (color) {
+            groupEl.style.setProperty('--clan-color', rgbToCss(color));
+            groupEl.style.setProperty('--clan-color-soft', rgbaToCss(color, 0.14));
+            groupEl.style.setProperty('--clan-color-strong', rgbaToCss(color, 0.28));
+            groupEl.style.setProperty('--clan-color-border', rgbaToCss(color, 0.6));
+          }
         }
         this.updateClanCount(groupEl);
       }
@@ -1005,6 +1268,8 @@ export class PlayerListUI {
     this.clanColorAllocator.reset();
     this.clanColorMap.clear();
     this.clanTeamMap.clear();
+    this.soloPlayerColorAllocator.reset();
+    this.soloPlayerColorMap.clear();
   }
 
   private updateClanColorMaps(): void {
@@ -1027,11 +1292,11 @@ export class PlayerListUI {
         const key = group.tag.toLowerCase();
         const team = clanTeamMap.get(key);
         const color = team ? teamColorMap.get(team) : undefined;
+        if (team) {
+          this.clanTeamMap.set(key, team);
+        }
         if (color) {
           this.clanColorMap.set(key, color);
-          this.clanTeamMap.set(key, team!);
-        } else {
-          this.clanColorMap.set(key, this.clanColorAllocator.assignColor(key));
         }
       }
       return;

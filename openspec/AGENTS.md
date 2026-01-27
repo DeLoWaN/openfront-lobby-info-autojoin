@@ -9,7 +9,7 @@ Instructions for AI coding assistants using OpenSpec for spec-driven development
 - Pick a unique `change-id`: kebab-case, verb-led (`add-`, `update-`, `remove-`, `refactor-`)
 - Scaffold: `proposal.md`, `tasks.md`, `design.md` (only if needed), and delta specs per affected capability
 - Write deltas: use `## ADDED|MODIFIED|REMOVED|RENAMED Requirements`; include at least one `#### Scenario:` per requirement
-- Validate: `openspec validate [change-id] --strict` and fix issues
+- Validate: `openspec validate [change-id] --strict`, `npm test -- --run`, and `npm run type-check` (required for every proposal)
 - Request approval: Do not start implementation until proposal is approved
 
 ## Three-Stage Workflow
@@ -44,7 +44,7 @@ Skip proposal for:
 1. Review `openspec/project.md`, `openspec list`, and `openspec list --specs` to understand current context.
 2. Choose a unique verb-led `change-id` and scaffold `proposal.md`, `tasks.md`, optional `design.md`, and spec deltas under `openspec/changes/<id>/`.
 3. Draft spec deltas using `## ADDED|MODIFIED|REMOVED Requirements` with at least one `#### Scenario:` per requirement.
-4. Run `openspec validate <id> --strict` and resolve any issues before sharing the proposal.
+4. Run `openspec validate <id> --strict`, `npm test -- --run`, and `npm run type-check` before sharing the proposal.
 
 ### Stage 2: Implementing Changes
 Track these steps as TODOs and complete them one by one.

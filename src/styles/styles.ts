@@ -329,6 +329,58 @@ export function getStyles(): string {
       font-family: ${FONTS.display};
     }
 
+    .of-team-group {
+      position: relative;
+      padding: 12px ${SPACING.md} 6px ${SPACING.md};
+    }
+    .of-team-group + .of-team-group {
+      border-top: 1px dashed rgba(90, 110, 150, 0.35);
+    }
+    .of-team-group.current-player-team .of-team-band {
+      border-left-width: 5px;
+      box-shadow: 0 0 12px var(--team-color, ${COLORS.accent});
+    }
+    .of-team-band {
+      position: absolute;
+      inset: 0;
+      border-left: 3px solid var(--team-color, ${COLORS.accent});
+      background: transparent;
+      pointer-events: none;
+    }
+    .of-team-header {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: ${SPACING.xs};
+      padding: 4px 10px;
+      border-radius: ${RADIUS.xl};
+      border: 1px solid var(--team-color, ${COLORS.borderAccent});
+      background: rgba(10, 16, 28, 0.7);
+      font-size: 0.7em;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--team-color, ${COLORS.textPrimary});
+      font-family: ${FONTS.display};
+      margin-bottom: ${SPACING.xs};
+    }
+    .of-team-group.current-player-team .of-team-header::before {
+      content: "◆";
+      color: var(--team-color, ${COLORS.accent});
+      font-size: 0.85em;
+      margin-right: 2px;
+    }
+    .of-team-label {
+      font-weight: 700;
+    }
+    .of-team-count {
+      color: ${COLORS.textSecondary};
+      font-size: 0.85em;
+      letter-spacing: 0.1em;
+      font-family: ${FONTS.mono};
+      margin-left: ${SPACING.xs};
+    }
+
     .of-clan-group {
       margin: 8px ${SPACING.md};
       border: 1px solid rgba(90, 110, 150, 0.35);
@@ -340,6 +392,12 @@ export function getStyles(): string {
       --clan-color-soft: rgba(46, 211, 241, 0.14);
       --clan-color-strong: rgba(46, 211, 241, 0.28);
       --clan-color-border: rgba(46, 211, 241, 0.6);
+    }
+    .of-clan-group.of-clan-group-neutral {
+      --clan-color: rgba(150, 165, 190, 0.5);
+      --clan-color-soft: rgba(90, 105, 130, 0.2);
+      --clan-color-strong: rgba(120, 135, 170, 0.35);
+      --clan-color-border: rgba(120, 135, 170, 0.6);
     }
     .of-clan-group-enter {
       animation: clanGroupEnter ${TIMING.slow} cubic-bezier(.27,.82,.48,1.06) forwards;
@@ -369,9 +427,6 @@ export function getStyles(): string {
     }
     .of-clan-group-header:hover {
       background: linear-gradient(90deg, var(--clan-color-strong), rgba(28, 40, 60, 0.95) 65%);
-    }
-    .of-clan-group.current-player-clan .of-clan-group-header {
-      box-shadow: inset 0 0 0 1px var(--clan-color-border);
     }
     .of-clan-arrow {
       font-size: 0.8em;
@@ -474,10 +529,33 @@ export function getStyles(): string {
       background: var(--clan-color-soft);
       cursor: default;
       transition: background ${TIMING.fast}, border-color ${TIMING.fast}, transform ${TIMING.fast};
+      font-size: 0.85em;
     }
     .of-clan-group-players .of-player-item:hover {
       background: var(--clan-color-strong);
       border-color: var(--clan-color);
+      transform: translateY(-1px);
+    }
+    .of-solo-players {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px 12px 10px;
+      border-top: 1px dashed rgba(70, 90, 120, 0.35);
+    }
+    .of-solo-players .of-player-item {
+      display: inline-flex;
+      padding: 4px 10px;
+      border: 1px solid var(--player-accent-border, rgba(120, 135, 170, 0.5));
+      border-radius: ${RADIUS.sm};
+      background: var(--player-accent-soft, rgba(90, 105, 130, 0.18));
+      cursor: default;
+      transition: background ${TIMING.fast}, border-color ${TIMING.fast}, transform ${TIMING.fast};
+      font-size: 0.85em;
+    }
+    .of-solo-players .of-player-item:hover {
+      background: var(--player-accent-strong, rgba(120, 135, 170, 0.28));
+      border-color: var(--player-accent, rgba(150, 165, 190, 0.6));
       transform: translateY(-1px);
     }
     .of-player-list-content { flex: 1; padding: ${SPACING.xs} 0; }
@@ -497,6 +575,13 @@ export function getStyles(): string {
     .of-player-list-content > .of-player-item:hover {
       background: rgba(24, 34, 52, 0.7);
       border-bottom-color: rgba(80, 110, 160, 0.5);
+    }
+    .of-player-item.of-player-item-accent {
+      border-left: 3px solid var(--player-accent-border, rgba(120, 135, 170, 0.6));
+      background: var(--player-accent-soft, rgba(120, 135, 170, 0.18));
+    }
+    .of-clan-group-players .of-player-item.of-player-item-clanmate {
+      box-shadow: 0 0 10px var(--clan-color-border);
     }
     .of-player-name { color: ${COLORS.textPrimary}; white-space: nowrap; overflow: visible; font-weight: 400; flex: 1; }
     .of-player-highlighted { background: linear-gradient(90deg, ${COLORS.highlight} 40%, rgba(46, 211, 241, 0.05)); border-left: 3px solid ${COLORS.accent}; }
