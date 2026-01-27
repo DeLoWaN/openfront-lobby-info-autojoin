@@ -29,6 +29,15 @@ export interface ClanGroup {
 }
 
 /**
+ * Team group wrapper for Team mode rendering
+ */
+export interface TeamGroup {
+  team: string;
+  clanGroups: ClanGroup[];
+  soloPlayers: string[];
+}
+
+/**
  * Result of grouping players by clan
  */
 export interface GroupedPlayers {

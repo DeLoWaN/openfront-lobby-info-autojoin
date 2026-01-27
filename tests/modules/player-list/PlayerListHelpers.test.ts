@@ -5,8 +5,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   stripClanTag,
+  groupPlayersByClan,
   getTeamListForLobby,
   computeClanTeamMap,
+  buildTeamGroups,
   mapNameToFileKey,
 } from '@/modules/player-list/PlayerListHelpers';
 
@@ -97,7 +99,7 @@ describe('getTeamListForLobby', () => {
   it('should compute team count from Duos', () => {
     const config = { gameMode: 'Team', playerTeams: 'Duos' } as any;
     const teams = getTeamListForLobby(config, 5, 0);
-    expect(teams).toEqual(['Red', 'Blue', 'Yellow']);
+    expect(teams).toEqual(['Team 1', 'Team 2', 'Team 3']);
   });
 });
 
@@ -109,6 +111,32 @@ describe('computeClanTeamMap', () => {
     expect(map.get('aaa')).toBe('Red');
     expect(map.get('bb')).toBe('Blue');
     expect(map.get('cc')).toBe('Blue');
+  });
+});
+
+describe('buildTeamGroups', () => {
+  it('should group clans and solo players under teams', () => {
+    const config = { gameMode: 'Team', teamCount: 2 } as any;
+    const names = [
+      '[AAA] One',
+      '[AAA] Two',
+      '[BB] Solo',
+      'NoClan1',
+      '[CC] Solo',
+      'NoClan2',
+    ];
+    const { clanGroups, untaggedPlayers } = groupPlayersByClan(names);
+    const groups = buildTeamGroups(names, clanGroups, untaggedPlayers, config, 0);
+
+    expect(groups.length).toBe(2);
+    const red = groups.find((g) => g.team === 'Red');
+    const blue = groups.find((g) => g.team === 'Blue');
+    expect(red).toBeDefined();
+    expect(blue).toBeDefined();
+    expect(red!.clanGroups.some((g) => g.tag.toLowerCase() === 'aaa')).toBe(true);
+    expect(blue!.clanGroups.some((g) => g.tag.toLowerCase() === 'bb')).toBe(true);
+    expect(blue!.clanGroups.some((g) => g.tag.toLowerCase() === 'cc')).toBe(true);
+    expect(red!.soloPlayers.length + blue!.soloPlayers.length).toBe(2);
   });
 });
 

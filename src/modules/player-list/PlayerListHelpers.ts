@@ -6,7 +6,7 @@
 import { CONFIG } from '@/config/constants';
 import { TEAM_ORDERED_COLORS } from '@/config/clanColors';
 import type { GameConfig } from '@/types/game';
-import type { ClanGroup, GroupedPlayers, PlayerDiff } from './PlayerListTypes';
+import type { ClanGroup, GroupedPlayers, PlayerDiff, TeamGroup } from './PlayerListTypes';
 
 /**
  * Extract clan tag from player name
@@ -51,6 +51,27 @@ interface PlayerEntry {
   clan: string | null;
 }
 
+interface TeamAssignments {
+  teams: string[];
+  clanTeamMap: Map<string, string>;
+  soloTeamMap: Map<string, string>;
+}
+
+function selectTeamWithFewestPlayers(
+  teams: string[],
+  teamPlayerCount: Map<string, number>
+): { team: string | null; teamSize: number } {
+  let team: string | null = null;
+  let teamSize = 0;
+  for (const t of teams) {
+    const p = teamPlayerCount.get(t) ?? 0;
+    if (team !== null && teamSize <= p) continue;
+    teamSize = p;
+    team = t;
+  }
+  return { team, teamSize };
+}
+
 export function getLobbyTeamConfig(gameConfig: GameConfig | null | undefined): TeamConfigValue {
   if (!gameConfig) return null;
   if (gameConfig.playerTeams) return gameConfig.playerTeams;
@@ -73,12 +94,21 @@ export function getTeamListForLobby(
     return ['Humans', 'Nations'];
   }
 
+  const useNumberedTeams = config === 'Duos' || config === 'Trios' || config === 'Quads';
   let numTeams = 2;
   if (typeof config === 'number') {
     numTeams = Math.max(2, config);
   } else {
     const divisor = config === 'Duos' ? 2 : config === 'Trios' ? 3 : config === 'Quads' ? 4 : 2;
-    numTeams = Math.max(2, Math.ceil((playerCount + nationCount) / divisor));
+    const maxPlayers =
+      gameConfig.maxClients ?? gameConfig.maxPlayers ?? gameConfig.maxPlayersPerGame ?? null;
+    const totalPlayers =
+      maxPlayers !== null ? Math.max(playerCount, maxPlayers) : playerCount;
+    numTeams = Math.max(2, Math.ceil((totalPlayers + nationCount) / divisor));
+  }
+
+  if (useNumberedTeams) {
+    return Array.from({ length: numTeams }, (_, i) => `Team ${i + 1}`);
   }
 
   if (numTeams < 8) {
@@ -113,9 +143,38 @@ export function computeClanTeamMap(
     return clanTeams;
   }
 
+  const { clanTeamMap } = computeTeamAssignments(names, gameConfig, nationCount);
+  return clanTeamMap;
+}
+
+function computeTeamAssignments(
+  names: string[],
+  gameConfig: GameConfig | null | undefined,
+  nationCount: number
+): TeamAssignments {
+  if (!gameConfig || gameConfig.gameMode !== 'Team') {
+    return { teams: [], clanTeamMap: new Map(), soloTeamMap: new Map() };
+  }
+
+  const config = getLobbyTeamConfig(gameConfig);
   const teams = getTeamListForLobby(gameConfig, names.length, nationCount);
   if (teams.length === 0) {
-    return new Map();
+    return { teams: [], clanTeamMap: new Map(), soloTeamMap: new Map() };
+  }
+
+  const clanTeamMap = new Map<string, string>();
+  const soloTeamMap = new Map<string, string>();
+
+  if (config === 'Humans Vs Nations') {
+    for (const name of names) {
+      const tag = getPlayerClanTag(name);
+      if (tag) {
+        clanTeamMap.set(tag.toLowerCase(), 'Humans');
+      } else {
+        soloTeamMap.set(name, 'Humans');
+      }
+    }
+    return { teams, clanTeamMap, soloTeamMap };
   }
 
   const maxTeamSize = getMaxTeamSize(names.length + nationCount, teams.length);
@@ -140,44 +199,71 @@ export function computeClanTeamMap(
   );
 
   const teamPlayerCount = new Map<string, number>();
-  const clanTeamMap = new Map<string, string>();
 
   for (const [clanTag, clanPlayers] of sortedClans) {
-    let team: string | null = null;
-    let teamSize = 0;
-    for (const t of teams) {
-      const p = teamPlayerCount.get(t) ?? 0;
-      if (team !== null && teamSize <= p) continue;
-      teamSize = p;
-      team = t;
-    }
-
+    const { team, teamSize } = selectTeamWithFewestPlayers(teams, teamPlayerCount);
     if (!team) continue;
     clanTeamMap.set(clanTag.toLowerCase(), team);
 
+    let nextTeamSize = teamSize;
     for (const _player of clanPlayers) {
-      if (teamSize < maxTeamSize) {
-        teamSize++;
+      if (nextTeamSize < maxTeamSize) {
+        nextTeamSize++;
       }
     }
 
-    teamPlayerCount.set(team, teamSize);
+    teamPlayerCount.set(team, nextTeamSize);
   }
 
-  for (const _player of noClanPlayers) {
-    let team: string | null = null;
-    let teamSize = 0;
-    for (const t of teams) {
-      const p = teamPlayerCount.get(t) ?? 0;
-      if (team !== null && teamSize <= p) continue;
-      teamSize = p;
-      team = t;
-    }
+  for (const player of noClanPlayers) {
+    const { team, teamSize } = selectTeamWithFewestPlayers(teams, teamPlayerCount);
     if (!team) continue;
+    soloTeamMap.set(player.name, team);
     teamPlayerCount.set(team, teamSize + 1);
   }
 
-  return clanTeamMap;
+  return { teams, clanTeamMap, soloTeamMap };
+}
+
+export function buildTeamGroups(
+  names: string[],
+  clanGroups: ClanGroup[],
+  untaggedPlayers: string[],
+  gameConfig: GameConfig | null | undefined,
+  nationCount: number
+): TeamGroup[] {
+  const { teams, clanTeamMap, soloTeamMap } = computeTeamAssignments(
+    names,
+    gameConfig,
+    nationCount
+  );
+
+  if (teams.length === 0) {
+    return [];
+  }
+
+  const teamGroupMap = new Map<string, TeamGroup>();
+  for (const team of teams) {
+    teamGroupMap.set(team, { team, clanGroups: [], soloPlayers: [] });
+  }
+
+  for (const group of clanGroups) {
+    const team = clanTeamMap.get(group.tag.toLowerCase());
+    if (team && teamGroupMap.has(team)) {
+      teamGroupMap.get(team)!.clanGroups.push(group);
+    }
+  }
+
+  for (const player of untaggedPlayers) {
+    const team = soloTeamMap.get(player);
+    if (team && teamGroupMap.has(team)) {
+      teamGroupMap.get(team)!.soloPlayers.push(player);
+    }
+  }
+
+  return teams
+    .map((team) => teamGroupMap.get(team))
+    .filter((group): group is TeamGroup => Boolean(group));
 }
 
 export function mapNameToFileKey(mapName: string | null | undefined): string | null {
